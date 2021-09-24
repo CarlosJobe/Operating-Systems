@@ -50,18 +50,67 @@ using namespace std;
 deque<int> populateDeck(deque<int> d);
 deque<int> shuffleDeck(deque<int> d);
 void printDeck(deque<int> d);
-
+void initialDeal(deque<int> &d, deque<int> &p1, deque<int> &p2, deque<int> &p3);
+bool drawCard(deque<int> &d, deque<int> &p);
+void discard(deque<int> &d, deque<int> &p);
 
 int main(){
    
-  deque<int> deck;
+deque<int> deck;
+  deque<int> p1;
+  deque<int> p2;
+  deque<int> p3;
+  deque<int> order;
+  
+  bool winner = false;
+  
+  // allows us to pop/push to increment player order each round
+  for (int i=0; i<3; i++) order[i]=(i+1);
 
   printDeck(deck);
   deck = populateDeck(deck);
   printDeck(deck);
   deck = shuffleDeck(deck);
   printDeck(deck);
-  deck = shuffleDeck(deck);
+  
+  initialDeal(deck, p1, p2, p3);
+  printDeck(deck);
+  printDeck(p1);
+  printDeck(p2);
+  printDeck(p3);
+  
+  
+  winner = drawCard(deck, p1);
+  if(winner){
+     cout<< "player 1 won!" << endl;
+     printDeck(p1);
+  }
+  else {
+       printDeck(p1);
+       discard(deck, p1);
+  }
+  winner = drawCard(deck, p2);
+  if(winner){
+     cout<< "player 2 won!" << endl;
+     printDeck(p2);
+  }
+  else{
+       printDeck(p2);
+       discard(deck, p2);
+  }
+  winner = drawCard(deck, p3);
+  if(winner){
+     cout<< "player 3 won!" << endl;
+     printDeck(p3);
+  }
+  else{
+       printDeck(p3);
+       discard(deck, p3);
+  }
+  
+  printDeck(p1);
+  printDeck(p2);
+  printDeck(p3);
   printDeck(deck);
   
 }
@@ -96,6 +145,49 @@ void printDeck(deque<int> d){
          cout << d.at(i)  << " " ;
       }
    }
-  cout << "\n\n * * * * * * * * * * * * * * * * * * " << endl;
+  cout << "\n * * * * * * * * * * * * * * * * * * " << endl;
   return;
+}
+
+//  deal initial cards
+void initialDeal(deque<int> &d, deque<int> &p1, deque<int> &p2, deque<int> &p3){
+   for(int i = 0; i < 3; i++){
+      int cardToDeal = d.front();
+      d.pop_front();
+      if(i==0) p1.push_back(cardToDeal);
+      else if (i==1) p2.push_back(cardToDeal);
+      else p3.push_back(cardToDeal);
+   }
+}
+
+//  individual player draws a card
+bool drawCard(deque<int> &d, deque<int> &p){
+   bool won = false;
+   int cardToDraw = d.front();
+   d.pop_front();
+   p.push_back(cardToDraw);
+   if((p.front()%100) == (p.back()%100)){
+      won = true;
+   }
+   else won = false;
+   return won;
+   
+}
+
+//  individual player discards a card
+void discard(deque<int> &d, deque<int> &p){
+   unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+   srand (seed);
+   int toDiscard = rand() % 100 + 1;
+   cout << "discard card # :" << toDiscard << endl;
+   if(toDiscard%2 == 0){
+      int cardToDiscard = p.front();
+      p.pop_front();
+      d.push_back(cardToDiscard);
+   }
+   else {
+      int cardToDiscard = p.back();
+      p.pop_back();
+      d.push_back(cardToDiscard);
+   }
 }
