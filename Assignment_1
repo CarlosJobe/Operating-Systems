@@ -1,7 +1,101 @@
 /* 
-
 Carlos and Tylers first assignment
 
-commit test
+Using numbers to represent cards 
+* 3 digits
+  * first digit represents suit
+    * 1xx represents hearts
+    * 2xx represents diamonds
+    * 3xx represents clubs
+    * 4xx represents spades
+  * the 2nd and 3rd digits represent face values
+    * x01 represents aces
+    * x02 represents twos
+    * x03 represents threes
+    * ...
+    * x10 represents tens
+    * x11 represents jacks
+    * x12 represents queens
+    * x13 represents kings
+Check for pair using modulus
+  * if (card1 % 100 == card2 %100) // will return true for pair
+  
+Creating, shuffling, dealing, and discarding with the deck
+  * queue does not allow us to traverse the list to print the contents between hands
+  * deque (pronounced deck) should allow traversal
+  * std::shuffle should work with deque to randomize the deck
+  
+**** to run on the school server ***
+upload this file as a *.cpp
+navigate to the folder containing the file
+enter the following to compile:
+  g++ -std=c++11 filename.cpp
+then enter the following to run:
+  ./a.out
+  
+  We can write a make file to simplify this for submission...
+ 
 
 */
+
+#include <iostream>     // std::cout
+#include <algorithm>    // std::shuffle
+#include <deque>        // std::deque
+#include <random>       // std::default_random_engine
+#include <chrono>       // std::chrono::system_clock
+
+using namespace std;
+
+// *** Prototypes ***
+deque<int> populateDeck(deque<int> d);
+deque<int> shuffleDeck(deque<int> d);
+void printDeck(deque<int> d);
+
+
+int main(){
+   
+  deque<int> deck;
+
+  printDeck(deck);
+  deck = populateDeck(deck);
+  printDeck(deck);
+  deck = shuffleDeck(deck);
+  printDeck(deck);
+  deck = shuffleDeck(deck);
+  printDeck(deck);
+  
+}
+
+// *** Functions ***
+// populate the deck
+ deque<int> populateDeck(deque<int> d){
+  for(int i = 1; i <= 4; i++){
+    for(int ii = 1; ii <= 13; ii++){
+      int addCard = (i*100 + ii);
+      d.push_back(addCard);
+    }
+  }
+  return d;
+ }
+
+// shuffle the deck
+ deque<int> shuffleDeck(deque<int> d){
+  unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+  shuffle(d.begin(), d.end(), default_random_engine(seed));
+  return d;
+}
+
+// print the deck contents
+void printDeck(deque<int> d){
+   if(d.size() == 0){
+      cout << "\nThe deck is empty" << endl;
+   }
+   else{
+      cout << "\nThe deck contains:" << endl;
+      for(int i = 0; i < d.size(); i++){
+         cout << d.at(i)  << " " ;
+      }
+   }
+  cout << "\n\n * * * * * * * * * * * * * * * * * * " << endl;
+  return;
+}
