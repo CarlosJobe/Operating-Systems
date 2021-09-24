@@ -62,7 +62,11 @@ deque<int> deck;
   deque<int> p3;
   deque<int> order;
   
-  bool winner = false;
+      while(r <= 3){
+        round();
+        r++;            //need to create a winner function to end round
+        bool winner = false;
+    }
   
   // allows us to pop/push to increment player order each round
   for (int i=0; i<3; i++) order[i]=(i+1);
@@ -191,3 +195,22 @@ void discard(deque<int> &d, deque<int> &p){
       d.push_back(cardToDiscard);
    }
 }
+
+
+/*rounds                    //will need to create dealer and player thread functions
+void round(){               //will need to look more into pthreads for this part
+    int threadDealer = pthread_create();
+    
+    int threadPlayer;
+    for(r = 1; r <= 3; r++ )
+    {
+        threadPlayer = pthread_create();
+    }
+    
+    pthread_join();         //will join player and dealer thread
+    {
+        
+    }
+    
+}
+*/
