@@ -29,7 +29,7 @@ Creating, shuffling, dealing, and discarding with the deck
 upload this file as a *.cpp
 navigate to the folder containing the file
 enter the following to compile:
-  g++ -std=c++11 filename.cpp
+  g++ -std=c++11 filename.cpp   // need to add -pthread once we implement them
 then enter the following to run:
   ./a.out
   
