@@ -43,8 +43,13 @@ then enter the following to run:
 #include <deque>        // std::deque
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
+#include <pthread.h>    //std::pthread
+#define NUM_THREADS 4
 
 using namespace std;
+
+//Variables
+int r =1;
 
 // *** Prototypes ***
 deque<int> populateDeck(deque<int> d);
