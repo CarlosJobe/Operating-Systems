@@ -67,11 +67,9 @@ deque<int> deck;
   deque<int> p3;
   deque<int> order;
   
-      while(r <= 3){
-        round();
-        r++;            //need to create a winner function to end round
+          //need to create a winner function to end round
         bool winner = false;
-    }
+    
   
   // allows us to pop/push to increment player order each round
   for (int i=0; i<3; i++) order[i]=(i+1);
