@@ -168,6 +168,7 @@ void initialDeal(deque<int> &d, deque<int> &p1, deque<int> &p2, deque<int> &p3){
 }
 
 //  individual player draws a card
+//  need to add check if other player has already won
 bool drawCard(deque<int> &d, deque<int> &p){
    bool won = false;
    int cardToDraw = d.front();
@@ -182,6 +183,7 @@ bool drawCard(deque<int> &d, deque<int> &p){
 }
 
 //  individual player discards a card
+//  this needs a player won precondition that is checked when called
 void discard(deque<int> &d, deque<int> &p){
    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
    srand (seed);
