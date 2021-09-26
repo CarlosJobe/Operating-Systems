@@ -43,36 +43,43 @@ then enter the following to run:
 #include <deque>        // std::deque
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
-#include <pthread.h>    //std::pthread
-#define NUM_THREADS 4
 
 using namespace std;
 
-//Variables
-int r =1;
+struct Player
+{
+   int playerNo;
+   deque<int> playerHand;
+};
 
 // *** Prototypes ***
 deque<int> populateDeck(deque<int> d);
 deque<int> shuffleDeck(deque<int> d);
 void printDeck(deque<int> d);
-void initialDeal(deque<int> &d, deque<int> &p1, deque<int> &p2, deque<int> &p3);
-bool drawCard(deque<int> &d, deque<int> &p);
-void discard(deque<int> &d, deque<int> &p);
+void initialDeal(Player* player[]);
+void* drawCard(void*);
+void discard(Player*& p);
+
+
+deque<int> deck;
+pthread_mutex_t deckLock;
+
 
 int main(){
    
-deque<int> deck;
-  deque<int> p1;
-  deque<int> p2;
-  deque<int> p3;
-  deque<int> order;
+   pthread_t threads[3];
+   void *status;
+   
   
-          //need to create a winner function to end round
-        bool winner = false;
-    
+   Player* p1 = new Player;
+   Player* p2 = new Player;
+   Player* p3 = new Player;
+   Player* player[3] = {p1,p2,p3};
+  
+  bool winner = false;
   
   // allows us to pop/push to increment player order each round
-  for (int i=0; i<3; i++) order[i]=(i+1);
+ //for (int i=0; i<3; i++) order[i]=(i+1);
 
   printDeck(deck);
   deck = populateDeck(deck);
@@ -80,46 +87,24 @@ deque<int> deck;
   deck = shuffleDeck(deck);
   printDeck(deck);
   
-  initialDeal(deck, p1, p2, p3);
-  printDeck(deck);
-  printDeck(p1);
-  printDeck(p2);
-  printDeck(p3);
-  
-  
-  winner = drawCard(deck, p1);
-  if(winner){
-     cout<< "player 1 won!" << endl;
-     printDeck(p1);
-  }
-  else {
-       printDeck(p1);
-       discard(deck, p1);
-  }
-  winner = drawCard(deck, p2);
-  if(winner){
-     cout<< "player 2 won!" << endl;
-     printDeck(p2);
-  }
-  else{
-       printDeck(p2);
-       discard(deck, p2);
-  }
-  winner = drawCard(deck, p3);
-  if(winner){
-     cout<< "player 3 won!" << endl;
-     printDeck(p3);
-  }
-  else{
-       printDeck(p3);
-       discard(deck, p3);
-  }
-  
-  printDeck(p1);
-  printDeck(p2);
-  printDeck(p3);
+  cout << "sending to initial deal function" << endl;
+
+  initialDeal(player);
   printDeck(deck);
   
+     cout << "entering thread creation loop" << endl;
+
+  for(long int i = 0; i < 3; i++){
+     pthread_create(&threads[i], NULL, drawCard, (void *)player[i]);
+  }     
+  
+  for(int i = 0; i < 3; i++){
+     pthread_join(threads[i], &status);
+  }
+  
+
+  printDeck(deck);
+
 }
 
 // *** Functions ***
@@ -157,48 +142,61 @@ void printDeck(deque<int> d){
 }
 
 //  deal initial cards
-void initialDeal(deque<int> &d, deque<int> &p1, deque<int> &p2, deque<int> &p3){
+  void initialDeal(Player* p[]){
+
+   // add mutex once dealer is implemented
+      cout << "start of initial deal function" << endl;
+
    for(int i = 0; i < 3; i++){
-      int cardToDeal = d.front();
-      d.pop_front();
-      if(i==0) p1.push_back(cardToDeal);
-      else if (i==1) p2.push_back(cardToDeal);
-      else p3.push_back(cardToDeal);
+      int cardToDeal = deck.front();
+      deck.pop_front();
+      p[i]->playerHand.push_back(cardToDeal);
    }
+      cout << "leaving initial deal function" << endl;
+
+   // remove mutex once dealer is implemented
 }
 
 //  individual player draws a card
-//  need to add check if other player has already won
-bool drawCard(deque<int> &d, deque<int> &p){
+//bool drawCard(deque<int> &d, deque<int> &p){
+
+void* drawCard(void* player){
+   cout << "entering drawCard function" << endl;
+
+   Player* p = (Player*)player;
    bool won = false;
-   int cardToDraw = d.front();
-   d.pop_front();
-   p.push_back(cardToDraw);
-   if((p.front()%100) == (p.back()%100)){
+   pthread_mutex_lock(&deckLock);
+   int cardToDraw = deck.front();
+   deck.pop_front();
+   p->playerHand.push_back(cardToDraw);
+   if((p->playerHand.front()%100) == (p->playerHand.back()%100)){
       won = true;
    }
    else won = false;
-   return won;
+   discard(p);
+   pthread_mutex_unlock(&deckLock);
+   //return;
    
 }
 
 //  individual player discards a card
-//  this needs a player won precondition that is checked when called
-void discard(deque<int> &d, deque<int> &p){
+void discard(Player*& p){
+   cout << "entering discard function" << endl;
    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
    srand (seed);
    int toDiscard = rand() % 100 + 1;
    cout << "discard card # :" << toDiscard << endl;
    if(toDiscard%2 == 0){
-      int cardToDiscard = p.front();
-      p.pop_front();
-      d.push_back(cardToDiscard);
+      int cardToDiscard = p->playerHand.front();
+      p->playerHand.pop_front();
+      deck.push_back(cardToDiscard);
    }
    else {
-      int cardToDiscard = p.back();
-      p.pop_back();
-      d.push_back(cardToDiscard);
+      int cardToDiscard = p->playerHand.back();
+      p->playerHand.pop_back();
+      deck.push_back(cardToDiscard);
    }
+   cout << "leaving discard function" << endl;
 }
 
 
