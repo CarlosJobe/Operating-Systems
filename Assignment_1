@@ -37,7 +37,6 @@ then enter the following to run:
  
 
 */
-
 #include <iostream>     // std::cout
 #include <algorithm>    // std::shuffle
 #include <deque>        // std::deque
@@ -75,6 +74,10 @@ int main(){
    Player* p2 = new Player;
    Player* p3 = new Player;
    Player* player[3] = {p1,p2,p3};
+   
+   for(int i = 0; i < 3; i++){
+      player[i]->playerNo = (i+1);
+   }
   
   bool winner = false;
   
@@ -164,6 +167,7 @@ void* drawCard(void* player){
    cout << "entering drawCard function" << endl;
 
    Player* p = (Player*)player;
+   cout << "Player : " << p->playerNo << " is drawing a card" << endl;
    bool won = false;
    pthread_mutex_lock(&deckLock);
    int cardToDraw = deck.front();
@@ -185,16 +189,17 @@ void discard(Player*& p){
    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
    srand (seed);
    int toDiscard = rand() % 100 + 1;
-   cout << "discard card # :" << toDiscard << endl;
    if(toDiscard%2 == 0){
       int cardToDiscard = p->playerHand.front();
       p->playerHand.pop_front();
       deck.push_back(cardToDiscard);
+      cout << "Player : " << p->playerNo << " is discarding card # :" << cardToDiscard << endl;
    }
    else {
       int cardToDiscard = p->playerHand.back();
       p->playerHand.pop_back();
       deck.push_back(cardToDiscard);
+      cout << "Player : " << p->playerNo << " is discarding card # :" << cardToDiscard << endl;
    }
    cout << "leaving discard function" << endl;
 }
