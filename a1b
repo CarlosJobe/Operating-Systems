@@ -1,0 +1,224 @@
+#include <iostream>     // std::cout
+#include <algorithm>    // std::shuffle
+#include <deque>        // std::deque
+#include <random>       // std::default_random_engine
+#include <chrono>       // std::chrono::system_clock
+
+using namespace std;
+
+struct Player
+{
+   int playerNo;
+   deque<int> playerHand;
+};
+
+struct Deck
+{
+   deque<int> deck;
+};
+
+Deck* dealerDeck = new Deck;
+int rc = 0;
+bool winner = false;
+int sequence = 1;
+
+// *** Prototypes ***
+void populateDeck(Deck*&);
+void shuffleDeck(Deck*&);
+void printDeck(Deck*&);
+void initialDeal(Player* player[]);
+void* turn(void*);
+void drawCard(Player*& p, Deck*& d);
+void discard(Player*& p);
+
+
+//deque<int> deck;
+pthread_mutex_t mutexdealerDeck;
+pthread_cond_t threadCounter;
+
+
+
+int main(){
+   
+   pthread_t threads[3];
+   //pthread_attr_t attr;
+   void *status;
+   
+  
+   Player* p1 = new Player;
+   Player* p2 = new Player;
+   Player* p3 = new Player;
+   Player* player[3] = {p1,p2,p3};
+
+   //pthread_attr_init(&attr);   
+   pthread_mutex_init(&mutexdealerDeck, NULL);
+   pthread_cond_init (&threadCounter, NULL);
+
+   
+   
+   for(int i = 0; i < 3; i++){
+      
+      player[i]->playerNo = (i+1);
+   }
+  
+  //bool winner = false;
+  
+  // allows us to pop/push to increment player order each round
+ //for (int i=0; i<3; i++) order[i]=(i+1);
+
+  printDeck(dealerDeck);
+  populateDeck(dealerDeck);
+  printDeck(dealerDeck);
+  shuffleDeck(dealerDeck);
+  printDeck(dealerDeck);
+  
+  cout << "sending to initial deal function" << endl;
+
+  initialDeal(player);
+  printDeck(dealerDeck);
+
+  
+     cout << "entering thread creation loop" << endl;
+
+  /*for(long int i = 0; i < 3; i++){
+     //rc = pthread_create(&threads[i], &attr, drawCard, (void*)player[i]);
+     rc = pthread_create(&threads[i], NULL, drawCard, (void*)player[i]);
+     //cout << "Creating player " << i << endl;
+     if(rc){
+        cout << "error creating thread" << endl;
+        exit(-1);
+     }
+  }    */
+
+   
+   for(long int i = 0; i < 3; i++){
+     //pthread_create(&threads[i], &attr, drawCard, (void *)player[i]);
+     pthread_create(&threads[i], NULL, turn, (void *)player[i]);
+  }   
+  
+  
+  for(int i = 0; i < 3; i++){
+     //pthread_join(threads[i], &status);
+     int t = pthread_join(threads[i], NULL);
+     if(t){
+        cout << "error creating thread" << endl;
+        exit(-1);
+     }
+  }
+  
+   //pthread_mutex_destroy(&deckLock);
+   //pthread_exit(NULL);
+  printDeck(dealerDeck);
+  
+  //pthread_attr_destroy(&attr);
+  pthread_mutex_destroy(&mutexdealerDeck);
+  pthread_exit (NULL);
+   
+}
+
+// *** Functions ***
+// populate the deck
+ void populateDeck(Deck*& d){
+  for(int i = 1; i <= 4; i++){
+    for(int ii = 1; ii <= 13; ii++){
+      int addCard = (i*100 + ii);
+      d->deck.push_back(addCard);
+    }
+  }
+
+ }
+
+// shuffle the deck
+  void shuffleDeck(Deck*& d){
+  unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+  shuffle(d->deck.begin(), d->deck.end(), default_random_engine(seed));
+  //return d;
+}
+
+// print the deck contents
+void printDeck(Deck*& d){
+   if(d->deck.size() == 0){
+      cout << "\nThe deck is empty" << endl;
+   }
+   else{
+      cout << "\nThe deck contains:" << endl;
+      for(int i = 0; i < d->deck.size(); i++){
+         cout << d->deck.at(i)  << " " ;
+      }
+   }
+  cout << "\n * * * * * * * * * * * * * * * * * * " << endl;
+  return;
+}
+
+//  deal initial cards
+  void initialDeal(Player* p[]){
+
+   // add mutex once dealer is implemented
+      cout << "start of initial deal function" << endl;
+
+   for(int i = 0; i < 3; i++){
+      int cardToDeal = dealerDeck->deck.front();
+      dealerDeck->deck.pop_front();
+      p[i]->playerHand.push_back(cardToDeal);
+      
+   }
+      cout << "leaving initial deal function" << endl;
+
+   // remove mutex once dealer is implemented
+}
+
+void* turn(void* player){
+   Player* p = (Player*)player;
+   cout << "sequence " << sequence << endl;
+   while(p->playerNo != sequence)
+   pthread_mutex_lock(&mutexdealerDeck);
+   drawCard(p, dealerDeck);
+   pthread_mutex_unlock(&mutexdealerDeck);
+   sequence++;
+   pthread_exit(NULL);
+   
+}
+
+
+//  individual player draws a card
+void drawCard(Player* &p, Deck* &d){
+   //
+   cout << "mute locked" << endl;
+   cout << "entering drawCard function" << endl;
+
+   //Player* p = (Player*)player;
+   cout << "Player : " << p->playerNo << " is drawing a card" << endl;
+   //bool won = false;
+   
+   int cardToDraw = dealerDeck->deck.front();
+   dealerDeck->deck.pop_front();
+   p->playerHand.push_back(cardToDraw);
+   cout << p->playerHand.front() << p->playerHand.back() << endl;
+   if((p->playerHand.front()%100) == (p->playerHand.back()%100)){
+      //won = true;
+      cout << "winner" << endl;
+   }
+   else{
+//  individual player discards a card
+   cout << "entering discard function" << endl;
+   unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+   srand (seed);
+   int toDiscard = rand() % 100 + 1;
+   if(toDiscard%2 == 0){
+      int cardToDiscard = p->playerHand.front();
+      p->playerHand.pop_front();
+      dealerDeck->deck.push_back(cardToDiscard);
+      cout << "Player : " << p->playerNo << " is discarding card # :" << cardToDiscard << endl;
+   }
+   else {
+      int cardToDiscard = p->playerHand.back();
+      p->playerHand.pop_back();
+      dealerDeck->deck.push_back(cardToDiscard);
+      cout << "Player : " << p->playerNo << " is discarding card # :" << cardToDiscard << endl;
+   }
+   //won = false;
+   cout << "leaving discard function" << endl;
+   }
+
+
+}
