@@ -20,6 +20,7 @@ struct Deck
 Deck* dealerDeck = new Deck;
 int rc = 0;
 bool winner = false;
+bool deckLocked = false;
 int sequence = 1;
 
 // *** Prototypes ***
@@ -35,8 +36,7 @@ void discard(Player*& p);
 //deque<int> deck;
 pthread_mutex_t mutexdealerDeck;
 pthread_cond_t threadCounter;
-
-
+pthread_cond_t threadWait;
 
 int main(){
    
@@ -44,7 +44,6 @@ int main(){
    //pthread_attr_t attr;
    void *status;
    
-  
    Player* p1 = new Player;
    Player* p2 = new Player;
    Player* p3 = new Player;
@@ -53,8 +52,7 @@ int main(){
    //pthread_attr_init(&attr);   
    pthread_mutex_init(&mutexdealerDeck, NULL);
    pthread_cond_init (&threadCounter, NULL);
-
-   
+   pthread_cond_init (&threadWait, NULL);
    
    for(int i = 0; i < 3; i++){
       
@@ -90,21 +88,22 @@ int main(){
      }
   }    */
 
-   
-   for(long int i = 0; i < 3; i++){
-     //pthread_create(&threads[i], &attr, drawCard, (void *)player[i]);
-     pthread_create(&threads[i], NULL, turn, (void *)player[i]);
-  }   
-  
-  
-  for(int i = 0; i < 3; i++){
-     //pthread_join(threads[i], &status);
-     int t = pthread_join(threads[i], NULL);
-     if(t){
-        cout << "error creating thread" << endl;
-        exit(-1);
+   while(!winner){
+      sequence = 1;
+      for(long int i = 0; i < 3; i++){
+        pthread_create(&threads[i], NULL, &turn, (void *)player[i]);
+      }   
+     
+
+     for(int i = 0; i < 3; i++){
+        int t = pthread_join(threads[i], NULL);
+        if(t){
+           cout << "error creating thread" << endl;
+           exit(-1);
+        }
+        //cout << "after error if in thread join loop" << endl;
      }
-  }
+}
   
    //pthread_mutex_destroy(&deckLock);
    //pthread_exit(NULL);
@@ -169,33 +168,37 @@ void printDeck(Deck*& d){
 
 void* turn(void* player){
    Player* p = (Player*)player;
-   cout << "sequence " << sequence << endl;
-   while(p->playerNo != sequence)
    pthread_mutex_lock(&mutexdealerDeck);
+   //long turnCount = (sequence % 4);
+   //cout << "turnCount = " << turnCount << endl;
+   //while(p->playerNo != turnCount){
+   while(p->playerNo != sequence){
+      pthread_cond_wait(&threadWait, &mutexdealerDeck);
+   }
+   //if(turn == 0){
+      //dealer stuff
+   //}
+   //else{
    drawCard(p, dealerDeck);
-   pthread_mutex_unlock(&mutexdealerDeck);
+   //discardCard(p, delaerDeck);
+   //}
    sequence++;
+   pthread_mutex_unlock(&mutexdealerDeck);
+   pthread_cond_broadcast(&threadWait);
    pthread_exit(NULL);
-   
 }
 
 
 //  individual player draws a card
 void drawCard(Player* &p, Deck* &d){
-   //
-   cout << "mute locked" << endl;
-   cout << "entering drawCard function" << endl;
-
-   //Player* p = (Player*)player;
    cout << "Player : " << p->playerNo << " is drawing a card" << endl;
-   //bool won = false;
-   
+   //bool won = false;  
    int cardToDraw = dealerDeck->deck.front();
    dealerDeck->deck.pop_front();
    p->playerHand.push_back(cardToDraw);
    cout << p->playerHand.front() << p->playerHand.back() << endl;
    if((p->playerHand.front()%100) == (p->playerHand.back()%100)){
-      //won = true;
+      winner = true;
       cout << "winner" << endl;
    }
    else{
