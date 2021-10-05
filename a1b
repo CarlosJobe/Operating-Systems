@@ -180,7 +180,7 @@ void* turn(void* player){
    //}
    //else{
    drawCard(p, dealerDeck);
-   //discardCard(p, delaerDeck);
+   //discard(p, delaerDeck);
    //}
    sequence++;
    pthread_mutex_unlock(&mutexdealerDeck);
@@ -191,14 +191,23 @@ void* turn(void* player){
 
 //  individual player draws a card
 void drawCard(Player* &p, Deck* &d){
+   //
+   cout << "mute locked" << endl;
+   cout << "entering drawCard function" << endl;
+
+   //Player* p = (Player*)player;
    cout << "Player : " << p->playerNo << " is drawing a card" << endl;
-   //bool won = false;  
+  // winner = false;
+   
    int cardToDraw = dealerDeck->deck.front();
    dealerDeck->deck.pop_front();
    p->playerHand.push_back(cardToDraw);
    cout << p->playerHand.front() << p->playerHand.back() << endl;
+}
+
+void discard(Player* &p){
    if((p->playerHand.front()%100) == (p->playerHand.back()%100)){
-      winner = true;
+   // winner = true;
       cout << "winner" << endl;
    }
    else{
@@ -219,9 +228,7 @@ void drawCard(Player* &p, Deck* &d){
       dealerDeck->deck.push_back(cardToDiscard);
       cout << "Player : " << p->playerNo << " is discarding card # :" << cardToDiscard << endl;
    }
-   //won = false;
+ //winner = false;
    cout << "leaving discard function" << endl;
    }
-
-
 }
