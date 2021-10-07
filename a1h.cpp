@@ -1,4 +1,3 @@
-
 #include <iostream>     // std::cout
 #include <algorithm>    // std::shuffle
 #include <deque>        // std::deque
@@ -31,6 +30,8 @@ bool deckLocked = false;
 long sequence = 0;
 int seed = 0;
 int roundNo = 0;
+long roundsWon = 0;
+int handCount = 0;
 
 const int numPlayers = 3;
 
@@ -62,39 +63,34 @@ int main(int argc, char *argv[]){
    pthread_attr_init(&attr);
    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
    
-   
    for(int i = 0; i <= numPlayers; i++)      // add player numbers to player structs
    {
       players[i]->pNo = i; 
    }
-   
-   for(long ii = 0; ii < 3; ii++)   // loop for 3 rounds of play
-   { 
+   roundNo = 0;
+   while(roundsWon < 3){ 
       winner = false;
-      roundNo = ii+1;
+      roundNo++;
 
-            // creating dealer thread
-      pthread_create(&threads[0], &attr, &dealer, (void *)ii);
-
+      pthread_create(&threads[0], &attr, &dealer, (void *)roundsWon);
+      
       while(!sequence);
-
-      while(!winner && sequence > 0){  // loop for hand rotation until winner is declared
+      handCount = 0;
+      while(!winner && sequence > 0 && handCount <= 15){  // loop for hand rotation until winner is declared
          for(int iii = 1; iii <= numPlayers; iii++){  // creating player threads
            pthread_create(&threads[iii], &attr, &turn, (void *)players[iii]);
          }   
-               
-        pthread_join(threads[0], NULL);
-
-        for(int iv = 1; iv <= numPlayers; iv++){   // joining all threads
+         for(int iv = 1; iv <= numPlayers; iv++){   // joining all threads
            pthread_join(threads[iv], NULL);
-        }
+        } 
+        pthread_join(threads[0], NULL);
+        handCount++;
       }
       playerWon();
    }
   pthread_mutex_destroy(&mutexdealerDeck);
   pthread_cond_destroy(&threadWait);
   pthread_attr_destroy(&attr);
-   
   pthread_exit (NULL);
 }
 
@@ -106,7 +102,6 @@ int main(int argc, char *argv[]){
 **************** Populate the Deck *****************
 ***************************************************/
  void populateDeck(){
-  //cout << "populateDeck Function" << endl;
   dealerDeck->deck.clear();
   for(int i = 1; i <= 4; i++){
     for(int ii = 1; ii <= 13; ii++){
@@ -171,35 +166,37 @@ void* turn(void* player){                                // ********************
    checkWin(p);
    if(!winner)
    {
-      discard(p);    // maybe add won condition to prevent remaining players from discarding
+      discard(p);  
    }
    if(sequence == 3)
    {
-      //printDeck();
       sequence = 1;
    }
    else
+   {
       sequence++;
-   pthread_mutex_unlock(&mutexdealerDeck);
+   }
+   
    pthread_cond_broadcast(&threadWait);
+   pthread_mutex_unlock(&mutexdealerDeck);
    pthread_exit(NULL);
 }
 
 /***************************************************
 ******************* Dealer Duties ******************
 ***************************************************/
-void* dealer(void* i){                                   // *************************** DEALER
+void* dealer(void* i){ 
    long seqMod = (long)i;
    pthread_mutex_lock(&mutexdealerDeck);
    if(sequence == 0)
    {
-      populateDeck();      // *** this needs to be only on first round ***
+      populateDeck();
    }
    shuffleDeck();
    initialDeal();
-   sequence = seqMod+1;
-   pthread_mutex_unlock(&mutexdealerDeck);
+   sequence = seqMod+1; 
    pthread_cond_broadcast(&threadWait);
+   pthread_mutex_unlock(&mutexdealerDeck);
    pthread_exit(NULL); 
 }
 
@@ -211,7 +208,6 @@ void drawCard(Player* &p){
       int cardToDraw = dealerDeck->deck.front();
       dealerDeck->deck.pop_front();
       p->playerHand.push_back(cardToDraw);
-      //displayHand(p);
    }
 }
 
@@ -225,22 +221,19 @@ void discard(Player* &p){
       p->playerHand.pop_back();
       dealerDeck->deck.push_back(cardToDiscard);
    }
-
    else{
-//  individual player discards a card
-   srand (seed);
-   int toDiscard = rand() % 100 + 1;
-   if(toDiscard%2 == 0){
-      int cardToDiscard = p->playerHand.front();
-      p->playerHand.pop_front();
-      dealerDeck->deck.push_back(cardToDiscard);
-   }
-   else {
-      int cardToDiscard = p->playerHand.back();
-      p->playerHand.pop_back();
-      dealerDeck->deck.push_back(cardToDiscard);
-   }
-   //displayHand(p);
+      srand (seed);
+      int toDiscard = rand() % 100 + 1;
+      if(toDiscard%2 == 0){
+         int cardToDiscard = p->playerHand.front();
+         p->playerHand.pop_front();
+         dealerDeck->deck.push_back(cardToDiscard);
+      }
+      else {
+         int cardToDiscard = p->playerHand.back();
+         p->playerHand.pop_back();
+         dealerDeck->deck.push_back(cardToDiscard);
+      }
    }
 }
 
@@ -276,17 +269,25 @@ void displayHand(Player*& p){
 ******************* Player Won *********************
 ***************************************************/
 void playerWon(){
-   for( int i = 1; i <= numPlayers; i++)
+   if (winner)
    {
-      displayHand(players[i]);
+      for( int i = 1; i <= numPlayers; i++)
+      {
+         displayHand(players[i]);
+      }
+      printDeck();
+      roundsWon++;
    }
-   printDeck();
+   else
+   {
+      cout << endl;
+      cout << "Round # " << roundNo << " is a draw" << endl;
+   }
    for ( int ii = 1; ii <= numPlayers; ii++)
-   {
-      while (!players[ii]->playerHand.empty())
-         {
-           discard(players[ii]);
-         }
-   }
-   
+      {
+         while (!players[ii]->playerHand.empty())
+            {
+              discard(players[ii]);
+            }
+      }
 }
