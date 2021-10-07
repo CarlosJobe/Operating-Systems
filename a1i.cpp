@@ -120,7 +120,7 @@ int main(int argc, char *argv[]){
 ***************************************************/
   void shuffleDeck(){
   shuffle(dealerDeck->deck.begin(), dealerDeck->deck.end(), default_random_engine(seed));
-      fprintf(gFile, "Dealer: Shuffles\n");
+      fprintf(gFile, "\nDealer: Shuffles\n");
 }
 
 /***************************************************
@@ -134,11 +134,12 @@ void printDeck(){
       cout << "\nDECK: " << endl;
       for(int i = 0; i < dealerDeck->deck.size(); i++){
          cout << dealerDeck->deck.at(i)  << " " ;
+          fprintf(gFile, "%d ", dealerDeck->deck.at(i));
          if((i +1) % 13 == 0 )
          {
             cout << endl;
+             fprintf(gFile, "\n");
          }
-          fprintf(gFile, "%d\t", dealerDeck->deck.at(i));
       }
    }
   cout << endl;
@@ -153,7 +154,7 @@ void printDeck(){
       dealerDeck->deck.pop_front();
       players[i]->playerHand.push_back(cardToDeal);
       players[i]->won = false;
-       fprintf(gFile, "Player: %d draws %d\n", i, cardToDeal);
+       fprintf(gFile, "Player: %d hand %d \n", i, cardToDeal);
    }
 }
 
@@ -237,12 +238,14 @@ void discard(Player* &p){
          p->playerHand.pop_front();
          dealerDeck->deck.push_back(cardToDiscard);
           fprintf(gFile, "Player: %d discards %d \n", p->pNo, cardToDiscard);
+          fprintf(gFile, "Player: %d hand %d \n", p->pNo, p->playerHand.front());
       }
       else {
          int cardToDiscard = p->playerHand.back();
          p->playerHand.pop_back();
          dealerDeck->deck.push_back(cardToDiscard);
           fprintf(gFile, "Player: %d discards %d \n", p->pNo, cardToDiscard);
+          fprintf(gFile, "Player: %d hand %d \n", p->pNo, p->playerHand.back());
       }
    }
 }
@@ -258,6 +261,7 @@ void checkWin(Player* &p){
       cout << "Player # " << p->pNo << " wins round " << roundNo << endl;
        fprintf(gFile, "Player: %d wins round %d \n", p->pNo, roundNo);
       cout << endl;
+       fprintf(gFile, "\n");
    }
 }
 
@@ -268,10 +272,12 @@ void displayHand(Player*& p){
    string win;
    cout << "PLAYER " << p->pNo << ":" << endl;
    cout << "HAND";
+    fprintf(gFile, "\nPlayer: %d ", p->pNo);
    for (int i = 0; i < p->playerHand.size(); i++){
       cout << " " << p->playerHand.at(i);
-       fprintf(gFile, "\nPlayer %d: hand %d\n", p->pNo, p->playerHand.at(i));
+       fprintf(gFile, "hand %d ", p->playerHand.at(i));
    }
+    fprintf(gFile, "\n");
    if(p->won) { win = "yes";}
    else { win = "no"; }
    cout << "\nWIN " << win << endl;
