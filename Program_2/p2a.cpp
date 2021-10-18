@@ -8,6 +8,8 @@
 #include <iostream>
 #include <chrono>
 #include <array>
+#include <math.h>
+#include <fstream>
 
 using namespace std;
 
@@ -15,18 +17,38 @@ using namespace std;
 *************************** Global Variables ***************************
 ***********************************************************************/
 
+constexpr auto EVENT1 = 1;
+constexpr auto EVENT2 = 2;
+
 int schedAlg;
 int avgArrivalRate;
-float avgServiceTime;
-float quantumInterval;
-//bool improperInput;
+double avgServiceTime;
+double quantumInterval;
+bool end_condition;
+struct event* head;
+float time_clock;
+
+struct event {
+    float time;
+    int type;
+    // add more fields
+    struct event* next;
+};
 
 /***********************************************************************
 ****************************** Prototypes *****************************
 ***********************************************************************/
 
+void init();
+int run_sim();
+void generate_report();
+int schedule_event(struct event*);
+int process_event1(struct event* eve);
+int process_event2(struct event* eve);
 bool commandLineInput(int argc, char* argv[]);
 void commandLineInstructions(int i);
+float urand();
+float genexp(float lambda);
 
 
 /***********************************************************************
@@ -34,12 +56,17 @@ void commandLineInstructions(int i);
 ***********************************************************************/
 int main(int argc, char* argv[])
 {
+    // parse arguments
     bool exiting = commandLineInput(argc, argv);
     if (exiting)
     {
         cout << "\n\t*** exiting program because of bad command line input ***" << endl;
         return 0;
     }
+
+    init();
+    run_sim();
+    generate_report();
 
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
@@ -137,4 +164,125 @@ void commandLineInstructions(int i)
         cout << "\n\t*** <Quantum> is required for Algorithm #3 - Round Robbin (RR) ***\n" << endl;
         commandLineInstructions(0);
     }
+}
+
+/***************************************************
+************************ Init **********************
+***************************************************/
+/*
+initialize all variable, states, and end conditions
+schedule first events
+*/
+void init()
+{
+
+
+}
+
+/***************************************************
+*********************** run_sim ********************
+***************************************************/
+/*
+run the actual simulation
+*/
+int run_sim()
+{
+    struct event* eve;
+    while (!end_condition)
+    {
+        eve = head;
+        time_clock = eve->time;
+        switch (eve->type)
+        {
+        case EVENT1:
+            process_event1(eve);
+            break;
+        case EVENT2:
+            process_event2(eve);
+            break;
+
+            // add more events
+
+        //default:
+            // error 
+        }
+
+        head = eve->next;
+        free(eve);
+        eve = NULL;
+    }
+    return 0;
+}
+
+/***************************************************
+******************* generate report ****************
+***************************************************/
+/*
+output statistics
+*/
+void generate_report()
+{
+
+}
+
+/***************************************************
+******************* schedule event *****************
+***************************************************/
+/*
+insert event into the event queue in its order of time
+*/
+int schedule_event(struct event* new_event)
+{
+    return 0;  // temp to make empty program run
+}
+
+/***************************************************
+****************** process event 1 *****************
+***************************************************/
+/*
+process the first event
+*/
+int process_event1(struct event* eve)
+{
+    return 0;  // temp to make empty program run
+}
+
+/***************************************************
+****************** process event 2 *****************
+***************************************************/
+/*
+process the second event
+*/
+int process_event2(struct event* eve)
+{
+    return 0;  // temp to make empty program run
+}
+
+/***************************************************
+*********************** urand **********************
+***************************************************/
+/*
+returns a random number between 0 and 1
+*/
+float urand()
+{
+    return((float)rand() / RAND_MAX);
+}
+
+/***************************************************
+********************** genexp **********************
+***************************************************/
+/*
+returns a random number that follows an exp distribution
+*/
+float genexp(float lambda)
+{
+    float u, x;
+    x = 0;
+    while (x == 0)
+    {
+        u = urand();
+        x = (-1 / lambda) * log(u);
+    }
+    return(x);
 }
