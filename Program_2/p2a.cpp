@@ -28,11 +28,33 @@ bool end_condition;
 struct event* head;
 float time_clock;
 
+int num_processes = 10000;
+int totalTurnaround = 0;
+int totalWaiting = 0;
+int totalResponse = 0;
+int totalIdle = 0;
+float throughput;
+float avgTurnaround;
+float avgWaiting;
+float avgResponse;
+float utilization;
+
 struct event {
     float time;
     int type;
     // add more fields
     struct event* next;
+};
+
+struct process {
+    int pID;
+    int arrivalTime;
+    int burstTime;
+    int initialTime;
+    int finalTime;
+    int turnaroundTime;
+    int waitingTime;
+    int responseTime;
 };
 
 /***********************************************************************
@@ -47,8 +69,12 @@ int process_event1(struct event* eve);
 int process_event2(struct event* eve);
 bool commandLineInput(int argc, char* argv[]);
 void commandLineInstructions(int i);
+void fcfs(struct process, int num_processes);
+void srtf();
+void rr();
 float urand();
 float genexp(float lambda);
+struct process p[10];
 
 
 /***********************************************************************
@@ -56,6 +82,7 @@ float genexp(float lambda);
 ***********************************************************************/
 int main(int argc, char* argv[])
 {
+    
     // parse arguments
     bool exiting = commandLineInput(argc, argv);
     if (exiting)
@@ -67,7 +94,6 @@ int main(int argc, char* argv[])
     init();
     run_sim();
     generate_report();
-
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
 }
@@ -76,6 +102,41 @@ int main(int argc, char* argv[])
 ******************************* Functions ******************************
 ***********************************************************************/
 
+ void fcfs(struct process, int num_processes)
+ {
+     /*
+     for(int i = 0; i < num_processes; i++)
+     {
+         cout << "Entere arrival time " << i+1 << ": ";
+         cin >> p[i].arrivalTime;
+         cout << "Enter burst time of process " << i+1 << ": ";
+         cin >> p[i].burstTime;
+         p[i].pID = i+1;
+         cout << endl;
+     }
+      */
+     for(int i = 0; i < num_processes; i++)
+     {
+         p[i].initialTime = (i == 0)?p[i].arrivalTime:max(p[i-1].finalTime,p[i].arrivalTime);
+         p[i].finalTime = p[i].initialTime + p[i].burstTime;
+         p[i].turnaroundTime = p[i].finalTime - p[i].arrivalTime;
+         p[i].waitingTime = p[i].turnaroundTime - p[i].burstTime;
+         p[i].responseTime = p[i].initialTime - p[i].arrivalTime;
+         
+         totalTurnaround += p[i].turnaroundTime;
+         totalWaiting += p[i].waitingTime;
+         totalResponse += p[i].responseTime;
+         totalIdle += (i==0)?(p[i].arrivalTime):(p[i].initialTime - p[i-1].finalTime);
+     }
+     
+     avgTurnaround = (float) totalTurnaround / num_processes;
+     avgWaiting = (float) totalWaiting / num_processes;
+     avgResponse = (float) totalResponse / num_processes;
+     utilization = ((p[num_processes-1].finalTime - totalIdle) / (float) p[num_processes - 1].finalTime)*100;
+     throughput = float(num_processes) / (p[num_processes-1].finalTime - p[0].arrivalTime);
+     
+ }
+ 
 
 
 /***************************************************
@@ -204,7 +265,7 @@ int run_sim()
             // add more events
 
         //default:
-            // error 
+            // error
         }
 
         head = eve->next;
