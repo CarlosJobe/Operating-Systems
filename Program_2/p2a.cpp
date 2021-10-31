@@ -205,10 +205,10 @@ void commandLineInstructions(int i)
         cout << "<Arrival> indicates the average arrival rate in processes per second" << endl;
         cout << "\tfrom 1 process per second to 30 processes per second" << endl;
         cout << "<Service> indicates the average service time" << endl;
-        cout << "\tin hundreths of a second (0.01 sec resolution)" << endl;
+        cout << "\tin hundredths of a second (0.01 sec resolution)" << endl;
         cout << "<Quantum> indicates the quantum interval for Round Robin scheduling" << endl;
         cout << "\tFor RR scheduling this value is in milliseconds (0.001 sec resolution)" << endl;
-        cout << "\tYou can leave this blank for Algorithm #1 or #2 as it wil be ignored" << endl;
+        cout << "\tYou can leave this blank for Algorithm #1 or #2 as it will be ignored" << endl;
     }
     if (i == 1)
     {
