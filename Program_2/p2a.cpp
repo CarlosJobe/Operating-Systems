@@ -39,6 +39,8 @@ float avgWaiting;
 float avgResponse;
 float utilization;
 
+int roundRobinCounter;
+
 struct event {
     float time;
     int type;
@@ -46,15 +48,57 @@ struct event {
     struct event* next;
 };
 
+struct eventCompare {
+    bool operator()(const event& a, const event& b)
+    {
+        return a.time < b.time;
+    }
+};
+
 struct process {
     int pID;
     int arrivalTime;
     int burstTime;
+    int remainingTime;   // will need to set this equal to burstTime at process creation
     int initialTime;
     int finalTime;
     int turnaroundTime;
     int waitingTime;
     int responseTime;
+    int rrCounter;
+};
+
+struct processCompare {
+    bool operator()(const process& a, const process& b)
+    {
+        if (schedAlg == 1)
+        {
+            if (a.arrivalTime == b.arrivalTime)
+            {
+                return a.pID < b.pID;
+            }
+            else
+            {
+                return a.arrivalTime < b.arrivalTime;
+            }
+        }
+        else if (schedAlg == 2)
+        {
+            if (a.remainingTime == b.remainingTime)
+            {
+                return a.pID < b.pID;
+            }
+            else
+            {
+                return a.remainingTime < b.remainingTime;
+            }
+        }
+        else // (schedAlg == 3)
+        {
+            return a.rrCounter < b.rrCounter;
+        }
+
+    }
 };
 
 /***********************************************************************
