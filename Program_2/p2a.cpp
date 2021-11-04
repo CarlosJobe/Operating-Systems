@@ -26,51 +26,68 @@ int avgArrivalRate;
 double avgServiceTime;
 double quantumInterval;
 bool end_condition;
-struct event* head;
-float time_clock;       // this should be driven by the events list handler??
+//struct event* head;
+double time_clock;       // this should be driven by the events list handler??
+double newProcessClock;
 
 int num_processes = 10;
 int totalTurnaround = 0;
 int totalWaiting = 0;
 int totalResponse = 0;
 int totalIdle = 0;
-float throughput;
-float avgTurnaround;
-float avgWaiting;
-float avgResponse;
-float utilization;
+double throughput;
+double avgTurnaround;
+double avgWaiting;
+double avgResponse;
+double utilization;
 
 int pIDCounter;
 
 struct Event {
-    float time;
+    double time;
     int type;       // maybe start of process, end of process, 
     int epID;
+    bool operator < (const Event rhs) const
+    {
+        return time < rhs.time;
+    }
     // add more fields
     //struct event* next;  // dont think we need this since we are using queues....
 };
 
-struct Compare {
+/*struct Compare {
     bool operator()(const Event& a, const Event& b)
     {
         return a.time < b.time;
     }
-};
+};*/
 
 struct Process {
     int pID;
-    float arrivalTime;
-    float burstTime;
-    float remainingTime;   // will need to set this equal to burstTime at process creation
-    float initialTime;    // is this the time that it first starts being processed by the CPU?
-    float finalTime;
-    float turnaroundTime;
-    float waitingTime;
-    float responseTime;
+    double arrivalTime;
+    double burstTime;
+    double remainingTime;   // will need to set this equal to burstTime at process creation
+    double initialTime;    // is this the time that it first starts being processed by the CPU?
+    double finalTime;
+    double turnaroundTime;
+    double waitingTime;
+    double responseTime;
     //int rrCounter;
+
+    bool operator<(const Process& a) const
+    {
+        if (remainingTime == a.remainingTime)
+        {
+            return pID < a.pID;
+        }
+        else
+        {
+            return remainingTime < a.remainingTime;
+        }
+    }
 };
 
-struct ProcessCompare {
+/*struct ProcessCompare {
     bool operator()(const Process& a, const Process& b)
     {
         if (a.remainingTime == b.remainingTime)
@@ -82,11 +99,14 @@ struct ProcessCompare {
             return a.remainingTime < b.remainingTime;
         }
     }
-};
+};*/
 
-priority_queue<Event, vector<Event>, Compare> eventQueue;
+//priority_queue<Event, vector<Event>, Compare> eventQueue;
+priority_queue<Event> eventQueue;
 queue<Process> processReadyQueue;
-priority_queue<Process, vector<Process>, ProcessCompare> priorityPRQ; // Process ready queue for SRTF
+//priority_queue<Process, vector<Process>, ProcessCompare> priorityPRQ; // Process ready queue for SRTF
+priority_queue<Process> priorityPRQ; // Process ready queue for SRTF
+
 
 /***********************************************************************
 ****************************** Prototypes *****************************
@@ -95,19 +115,19 @@ priority_queue<Process, vector<Process>, ProcessCompare> priorityPRQ; // Process
 void init();
 int run_sim();
 void generate_report();
-int schedule_event(struct Event*& new_event);
-int process_event1(struct Event* eve);
-int process_event2(struct Event* eve);
+int schedule_event(struct Event new_event);
+//int process_event1(struct Event* eve);
+//int process_event2(struct Event* eve);
 bool commandLineInput(int argc, char* argv[]);
 void commandLineInstructions(int i);
-void fcfs(struct process, int num_processes);
+//void fcfs(struct process, int num_processes);
 //void srtf();
 //void rr();
-float urand();
-float genexp(float lambda);
-struct Process p[10];
-struct Process* generateProcess();
-struct Process generateProcessEvents(struct Process* &p);
+double urand();
+double genexp(double lambda);
+//struct Process p[10];
+struct Process generateProcess();
+void generateProcessEvents(struct Process p);
 
 /***********************************************************************
 ********************************* Main *********************************
@@ -131,6 +151,12 @@ int main(int argc, char* argv[])
     init();
     run_sim();
     generate_report();
+    while (!eventQueue.empty())
+    {
+        Event toPrint = eventQueue.top();
+        eventQueue.pop();
+        cout << "time=" << toPrint.time << " : type=" << toPrint.type << " : epID=" << toPrint.epID << endl;
+    }
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
 }
@@ -138,7 +164,7 @@ int main(int argc, char* argv[])
 /***********************************************************************
 ******************************* Functions ******************************
 ***********************************************************************/
-
+/*
 void fcfs(struct Process, int num_processes)
 {
     /*
@@ -151,7 +177,7 @@ void fcfs(struct Process, int num_processes)
         p[i].pID = i+1;
         cout << endl;
     }
-     */
+     // removed end block comment
     for (int i = 0; i < num_processes; i++)
     {
         p[i].initialTime = (i == 0) ? p[i].arrivalTime : max(p[i - 1].finalTime, p[i].arrivalTime);
@@ -166,13 +192,13 @@ void fcfs(struct Process, int num_processes)
         totalIdle += (i == 0) ? (p[i].arrivalTime) : (p[i].initialTime - p[i - 1].finalTime);
     }
 
-    avgTurnaround = (float)totalTurnaround / num_processes;
-    avgWaiting = (float)totalWaiting / num_processes;
-    avgResponse = (float)totalResponse / num_processes;
-    utilization = ((p[num_processes - 1].finalTime - totalIdle) / (float)p[num_processes - 1].finalTime) * 100;
-    throughput = float(num_processes) / (p[num_processes - 1].finalTime - p[0].arrivalTime);
+    avgTurnaround = (double)totalTurnaround / num_processes;
+    avgWaiting = (double)totalWaiting / num_processes;
+    avgResponse = (double)totalResponse / num_processes;
+    utilization = ((p[num_processes - 1].finalTime - totalIdle) / (double)p[num_processes - 1].finalTime) * 100;
+    throughput = double(num_processes) / (p[num_processes - 1].finalTime - p[0].arrivalTime);
 
-}
+}*/
 
 
 
@@ -186,9 +212,11 @@ schedule first events
 */
 void init()
 {
+    end_condition = false;
     time_clock = 0.0;
-    pIDCounter = 0;
-    Process* p1 = generateProcess();
+    newProcessClock = 0.0;
+    pIDCounter = 1;
+    Process p1 = generateProcess();
     //schedule_event(p1);
 
 }
@@ -201,9 +229,12 @@ run the actual simulation
 */
 int run_sim()
 {
-    struct event* eve;
-    /*while (!end_condition)
-   //{
+    
+    while (!end_condition)
+    {
+        
+    }
+   /*{
         eve = head;
         time_clock = eve->time;
         switch (eve->type)
@@ -234,18 +265,18 @@ int run_sim()
 /*
 generate a process for the process ready queue
 */
-struct Process* generateProcess()
+struct Process generateProcess()
 {
-    Process* p;
-    p->pID = pIDCounter;
-    p->arrivalTime = time_clock;
-    p->burstTime = genexp(avgServiceTime);
-    p->remainingTime = p->burstTime;
-    p->initialTime = 0.0;
-    p->finalTime = 0.0;
-    p->turnaroundTime = 0.0;
-    p->waitingTime = 0.0;
-    p->responseTime = 0.0;
+    Process p{};
+    p.pID = pIDCounter;
+    p.arrivalTime = time_clock;
+    p.burstTime = genexp(avgServiceTime);
+    p.remainingTime = p.burstTime;
+    p.initialTime = 0.0;
+    p.finalTime = 0.0;
+    p.turnaroundTime = 0.0;
+    p.waitingTime = 0.0;
+    p.responseTime = 0.0;
 
     generateProcessEvents(p);
 
@@ -259,13 +290,24 @@ struct Process* generateProcess()
 /*
 generate the process events for a process
 */
-struct Process generateProcessEvents(struct Process* &p)
+void generateProcessEvents(struct Process p)
 {
-    Event* e;
-    e->time = time_clock;
-    e->type = 1;
-    e->epID = p->pID;
-    schedule_event(e);
+    Event e1{};
+    e1.time = time_clock;
+    e1.type = 1;
+    e1.epID = p.pID;
+    int x1 = schedule_event(e1);
+    if (x1)
+        cout << "error scheduling event" << endl;
+
+    Event e2{};
+    e2.time = time_clock + p.burstTime;
+    e2.type = 2;
+    e2.epID = p.pID;
+    int x2 = schedule_event(e2);
+    if (x2)
+        cout << "error scheduling event" << endl;
+    
 }
 
 /***************************************************
@@ -274,12 +316,14 @@ struct Process generateProcessEvents(struct Process* &p)
 /*
 insert event into the event queue in its order of time
 */
-int schedule_event(struct Event* &new_event)
+int schedule_event(struct Event new_event)
 {
-    Event* eventToQueue = new_event;
-    eventQueue.push(new_event);
+    //Event* e = new_event;
+
+    eventQueue.emplace(new_event);
     return 0;  // temp to make empty program run
 }
+
 
 /***************************************************
 ****************** process event 1 *****************
@@ -288,10 +332,10 @@ int schedule_event(struct Event* &new_event)
 process the first event
 *** These will bu used to handle the different types of events in the event queue ***
 */
-int process_event1(struct Event* eve)
+/*int process_event1(struct Event* eve)
 {
     return 0;  // temp to make empty program run
-}
+}*/
 
 /***************************************************
 ****************** process event 2 *****************
@@ -299,10 +343,10 @@ int process_event1(struct Event* eve)
 /*
 process the second event
 */
-int process_event2(struct Event* eve)
+/*int process_event2(struct Event* eve)
 {
     return 0;  // temp to make empty program run
-}
+}*/
 
 /***************************************************
 *********************** urand **********************
@@ -310,9 +354,9 @@ int process_event2(struct Event* eve)
 /*
 returns a random number between 0 and 1
 */
-float urand()
+double urand()
 {
-    return((float)rand() / RAND_MAX);
+    return((double)rand() / RAND_MAX);
 }
 
 /***************************************************
@@ -321,9 +365,9 @@ float urand()
 /*
 returns a random number that follows an exp distribution
 */
-float genexp(float lambda)
+double genexp(double lambda)
 {
-    float u, x;
+    double u, x;
     x = 0;
     while (x == 0)
     {
@@ -430,4 +474,3 @@ void commandLineInstructions(int i)
         cout << "\n\t*** <Quantum> is required for Algorithm #3 - Round Robbin (RR) ***\n" << endl;
         commandLineInstructions(0);
     }
-}
