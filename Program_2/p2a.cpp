@@ -26,11 +26,13 @@ constexpr auto EVENT2 = 2;
 
 int schedAlg;
 int avgArrivalRate;
+float avgArrivalTime;
 float avgServiceTime;
 float quantumInterval;
 bool end_condition;
 //struct event* head;
 float time_clock;       // this should be driven by the events list handler??
+//float arrivalTimeClock;
 float newProcessClock;
 
 int num_processes = 10;
@@ -47,8 +49,9 @@ float utilization;
 int pIDCounter;
 
 struct Event {
-    double time;
+    float time;
     int type;       // maybe start of process, end of process, 
+    // maybe type 1 = FCFS start, 2= RR (re)start, 3 = SRTF (re)start
     int epID;
     bool operator < (const Event rhs) const
     {
@@ -84,8 +87,8 @@ struct Process {
 };
 
 priority_queue<Event> eventQueue;
-queue<Process> processReadyQueue;
-priority_queue<Process> priorityPRQ; // Process ready queue for SRTF
+queue<Process> processReadyQueue;       // for FCFS and RR
+priority_queue<Process> priorityPRQ;    // Process ready queue for SRTF
 
 
 /***********************************************************************
@@ -126,11 +129,16 @@ int main(int argc, char* argv[])
     init();
     run_sim();
     generate_report();
+
+
     while (!eventQueue.empty())
     {
         Event toPrint = eventQueue.top();
         eventQueue.pop();
-        cout << "time=" << toPrint.time << " : type=" << toPrint.type << " : epID=" << toPrint.epID << endl;
+        if (toPrint.type % 2)
+        {
+            cout << "time=" << toPrint.time << " \t: type=" << toPrint.type << " \t: epID=" << toPrint.epID << endl;
+        }
     }
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
@@ -197,7 +205,12 @@ void init()
     time_clock = 0.0;
     newProcessClock = 0.0;
     pIDCounter = 1;
+    avgArrivalTime = 1 / static_cast<float>(avgArrivalRate);
+    cout << "avgArrivalTime = " << avgArrivalTime << endl;
+
+
     Process p1 = generateProcess();
+    //if/else to appropriate queue
     //schedule_event(p1);
     
 
@@ -211,11 +224,13 @@ run the actual simulation
 */
 int run_sim()
 {
-    
-    //while (!end_condition)
-    //{
-        
-    //}
+    for (int i = 0; i < 10; i++)
+    {
+        Process p1 = generateProcess();
+        //if/else to appropriate queue
+    }
+
+
    /*{
         eve = head;
         time_clock = eve->time;
@@ -249,12 +264,24 @@ generate a process for the process ready queue
 */
 struct Process generateProcess()
 {
+
+    //**************************************************************************************************************************
     Process p{};
+    if (pIDCounter == 1)
+    {
+        p.arrivalTime = 0.0;
+    }
+    else
+    {
+        newProcessClock += (genexp(avgArrivalTime)/100.0);
+        p.arrivalTime = newProcessClock;
+        cout << "newProcessClock = " << newProcessClock << endl;
+    }
     p.pID = pIDCounter;
-    p.arrivalTime = time_clock;
-    p.burstTime = genexp(avgServiceTime);
-    cout << "avgServiceTime = " << avgServiceTime << endl;
-    cout << "burstTime returned = " << p.burstTime << endl;
+    //p.arrivalTime = time_clock;
+    p.burstTime = (genexp(avgServiceTime)/100.0);
+    //cout << "avgServiceTime = " << avgServiceTime << endl;
+    //cout << "burstTime returned = " << p.burstTime << endl;
     p.remainingTime = p.burstTime;
     p.initialTime = 0.0;
     p.finalTime = 0.0;
@@ -269,7 +296,7 @@ struct Process generateProcess()
 }
 
 /***************************************************
-************** generate process events *************
+************** generate process arrival events *************
 ***************************************************/
 /*
 generate the process events for a process
@@ -277,15 +304,17 @@ generate the process events for a process
 void generateProcessEvents(struct Process p)
 {
     Event e1{};
-    e1.time = time_clock;
+    e1.time = p.arrivalTime;
     e1.type = 1;
-    e1.epID = p.pID;
+    e1.epID = p.pID;   // will have to change as processes will have to recycle into the event list
     int x1 = schedule_event(e1);
     if (x1)
         cout << "error scheduling event" << endl;
 
+    
+    // genearate process service complete event
     Event e2{};
-    e2.time = time_clock + p.burstTime;
+    e2.time = p.arrivalTime + p.burstTime;
     e2.type = 2;
     e2.epID = p.pID;
     int x2 = schedule_event(e2);
@@ -314,7 +343,7 @@ int schedule_event(struct Event new_event)
 ***************************************************/
 /*
 process the first event
-*** These will bu used to handle the different types of events in the event queue ***
+*** These will be used to handle the different types of events in the event queue ***
 */
 /*int process_event1(struct Event* eve)
 {
