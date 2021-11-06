@@ -6,11 +6,14 @@
 ***********************************************************************/
 
 #include <iostream>
-#include <chrono>
+//#include <chrono>
 #include <array>
 #include <math.h>
 #include <fstream>
 #include <queue>
+#include <random>
+#include <ctime>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -23,23 +26,23 @@ constexpr auto EVENT2 = 2;
 
 int schedAlg;
 int avgArrivalRate;
-double avgServiceTime;
-double quantumInterval;
+float avgServiceTime;
+float quantumInterval;
 bool end_condition;
 //struct event* head;
-double time_clock;       // this should be driven by the events list handler??
-double newProcessClock;
+float time_clock;       // this should be driven by the events list handler??
+float newProcessClock;
 
 int num_processes = 10;
 int totalTurnaround = 0;
 int totalWaiting = 0;
 int totalResponse = 0;
 int totalIdle = 0;
-double throughput;
-double avgTurnaround;
-double avgWaiting;
-double avgResponse;
-double utilization;
+float throughput;
+float avgTurnaround;
+float avgWaiting;
+float avgResponse;
+float utilization;
 
 int pIDCounter;
 
@@ -55,23 +58,16 @@ struct Event {
     //struct event* next;  // dont think we need this since we are using queues....
 };
 
-/*struct Compare {
-    bool operator()(const Event& a, const Event& b)
-    {
-        return a.time < b.time;
-    }
-};*/
-
 struct Process {
     int pID;
-    double arrivalTime;
-    double burstTime;
-    double remainingTime;   // will need to set this equal to burstTime at process creation
-    double initialTime;    // is this the time that it first starts being processed by the CPU?
-    double finalTime;
-    double turnaroundTime;
-    double waitingTime;
-    double responseTime;
+    float arrivalTime;
+    float burstTime;
+    float remainingTime;   // will need to set this equal to burstTime at process creation
+    float initialTime;    // is this the time that it first starts being processed by the CPU?
+    float finalTime;
+    float turnaroundTime;
+    float waitingTime;
+    float responseTime;
     //int rrCounter;
 
     bool operator<(const Process& a) const
@@ -87,24 +83,8 @@ struct Process {
     }
 };
 
-/*struct ProcessCompare {
-    bool operator()(const Process& a, const Process& b)
-    {
-        if (a.remainingTime == b.remainingTime)
-        {
-            return a.pID < b.pID;
-        }
-        else
-        {
-            return a.remainingTime < b.remainingTime;
-        }
-    }
-};*/
-
-//priority_queue<Event, vector<Event>, Compare> eventQueue;
 priority_queue<Event> eventQueue;
 queue<Process> processReadyQueue;
-//priority_queue<Process, vector<Process>, ProcessCompare> priorityPRQ; // Process ready queue for SRTF
 priority_queue<Process> priorityPRQ; // Process ready queue for SRTF
 
 
@@ -123,8 +103,8 @@ void commandLineInstructions(int i);
 //void fcfs(struct process, int num_processes);
 //void srtf();
 //void rr();
-double urand();
-double genexp(double lambda);
+float urand();
+float genexp(float lambda);
 //struct Process p[10];
 struct Process generateProcess();
 void generateProcessEvents(struct Process p);
@@ -143,11 +123,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    //if (schedAlg == 1 || schedAlg == 3)
-    //{
-        
-    //}
-
     init();
     run_sim();
     generate_report();
@@ -164,6 +139,14 @@ int main(int argc, char* argv[])
 /***********************************************************************
 ******************************* Functions ******************************
 ***********************************************************************/
+
+
+/***************************************************
+************************ FCFS **********************
+***************************************************/
+/*
+First Come First Served scheduling algorithm
+*/
 /*
 void fcfs(struct Process, int num_processes)
 {
@@ -201,8 +184,6 @@ void fcfs(struct Process, int num_processes)
 }*/
 
 
-
-
 /***************************************************
 ************************ Init **********************
 ***************************************************/
@@ -218,6 +199,7 @@ void init()
     pIDCounter = 1;
     Process p1 = generateProcess();
     //schedule_event(p1);
+    
 
 }
 
@@ -230,10 +212,10 @@ run the actual simulation
 int run_sim()
 {
     
-    while (!end_condition)
-    {
+    //while (!end_condition)
+    //{
         
-    }
+    //}
    /*{
         eve = head;
         time_clock = eve->time;
@@ -271,6 +253,8 @@ struct Process generateProcess()
     p.pID = pIDCounter;
     p.arrivalTime = time_clock;
     p.burstTime = genexp(avgServiceTime);
+    cout << "avgServiceTime = " << avgServiceTime << endl;
+    cout << "burstTime returned = " << p.burstTime << endl;
     p.remainingTime = p.burstTime;
     p.initialTime = 0.0;
     p.finalTime = 0.0;
@@ -354,9 +338,12 @@ process the second event
 /*
 returns a random number between 0 and 1
 */
-double urand()
+float urand()
 {
-    return((double)rand() / RAND_MAX);
+    mt19937 rng;
+    uniform_real_distribution<float> dist(0.0, 1.0);  //(min, max)
+    rng.seed(random_device{}()); //non-deterministic seed
+    return dist(rng);
 }
 
 /***************************************************
@@ -365,14 +352,15 @@ double urand()
 /*
 returns a random number that follows an exp distribution
 */
-double genexp(double lambda)
+float genexp(float lambda)
 {
-    double u, x;
+    float u, x;
     x = 0;
+    
     while (x == 0)
     {
         u = urand();
-        x = (-1 / lambda) * log(u);
+        x = (-1.0 / lambda) * log10(u);
     }
     return(x);
 }
@@ -474,3 +462,4 @@ void commandLineInstructions(int i)
         cout << "\n\t*** <Quantum> is required for Algorithm #3 - Round Robbin (RR) ***\n" << endl;
         commandLineInstructions(0);
     }
+}
