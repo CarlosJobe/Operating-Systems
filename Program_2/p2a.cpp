@@ -99,6 +99,7 @@ void init();
 int run_sim();
 void generate_report();
 int schedule_event(struct Event new_event);
+int add_process(struct Process new_process);
 //int process_event1(struct Event* eve);
 //int process_event2(struct Event* eve);
 bool commandLineInput(int argc, char* argv[]);
@@ -130,7 +131,7 @@ int main(int argc, char* argv[])
     run_sim();
     generate_report();
 
-
+    /*
     while (!eventQueue.empty())
     {
         Event toPrint = eventQueue.top();
@@ -140,6 +141,22 @@ int main(int argc, char* argv[])
             cout << "time=" << toPrint.time << " \t: type=" << toPrint.type << " \t: epID=" << toPrint.epID << endl;
         }
     }
+
+    while (!processReadyQueue.empty())
+    {
+        Process toPrint = processReadyQueue.front();
+        processReadyQueue.pop();
+        cout << "Process pID = " << toPrint.pID << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << endl;
+        
+    }
+
+    while (!priorityPRQ.empty())
+    {
+        Process toPrint = priorityPRQ.top();
+        priorityPRQ.pop();
+        cout << "SRTF Process pID = " << toPrint.pID << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << endl;
+    }*/
+
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
 }
@@ -206,7 +223,7 @@ void init()
     newProcessClock = 0.0;
     pIDCounter = 1;
     avgArrivalTime = 1 / static_cast<float>(avgArrivalRate);
-    cout << "avgArrivalTime = " << avgArrivalTime << endl;
+    //cout << "avgArrivalTime = " << avgArrivalTime << endl;
 
 
     Process p1 = generateProcess();
@@ -224,6 +241,13 @@ run the actual simulation
 */
 int run_sim()
 {
+    /*
+    so here we read the first item in the eventQueue and determine the event type
+    then use that to send the event to the appropriate event processor.
+
+    the individual processors do much of the work
+    */
+
     for (int i = 0; i < 10; i++)
     {
         Process p1 = generateProcess();
@@ -265,7 +289,7 @@ generate a process for the process ready queue
 struct Process generateProcess()
 {
 
-    //**************************************************************************************************************************
+    //  **************************************************************************************************************************
     Process p{};
     if (pIDCounter == 1)
     {
@@ -290,6 +314,7 @@ struct Process generateProcess()
     p.responseTime = 0.0;
 
     generateProcessEvents(p);
+    add_process(p);
 
     pIDCounter++;
     return p;
@@ -337,6 +362,24 @@ int schedule_event(struct Event new_event)
     return 0;  // temp to make empty program run
 }
 
+/***************************************************
+**************** add process to queue **************
+***************************************************/
+/*
+add process to appropriate queue
+*/
+int add_process(struct Process new_process)
+{
+    if (schedAlg == 1 || schedAlg == 3)
+    {
+        processReadyQueue.push(new_process);
+    }
+    else
+        priorityPRQ.emplace(new_process);
+
+    return 0;  // temp to make empty program run, function probably needs to be void
+
+}
 
 /***************************************************
 ****************** process event 1 *****************
