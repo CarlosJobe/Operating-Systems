@@ -101,6 +101,18 @@ struct Process {
     }
 };
 
+/*
+ struct Statistics{
+    float totalTurnaround;
+    float totalWaiting;
+    float totalIdle;
+    float avgTurnaround;
+    float avgWaiting;
+    float utilization;
+    float throughput;
+ };
+ */
+
 priority_queue<Event> eventQueue;
 queue<Process> processReadyQueue;       // for FCFS and RR
 priority_queue<Process> priorityPRQ;    // Process ready queue for SRTF
@@ -135,6 +147,7 @@ float genexp(float lambda);
 struct Process generateProcess();
 void generateProcessEvents(struct Process p);
 void generateEventToCreateProcess(float time);
+void statistics(struct Statistics s);
 
 void printTopProcess();
 
