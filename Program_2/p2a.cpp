@@ -193,6 +193,19 @@ void printTopProcess()
     }
 }
 
+ void statistics(struct Statistics *p, int num_processes)
+ {
+
+ avgTurnaround = totalTurnaround / num_processes;
+     cout << "Average Turnaround: " << avgTurnaround << endl;
+ avgWaiting = totalWaiting / num_processes;
+     cout << "Average Waiting Time: " << avgWaiting << endl;
+ utilization = ((p[num_processes - 1].finalTime - totalIdle) / p[num_processes - 1].finalTime) * 100;
+     cout << "CPU Utilization: " << utilization << "%" << endl;
+ throughput = (num_processes) / (p[num_processes - 1].finalTime - p[0].arrivalTime);
+     cout << "Throughput: " << throughput << endl;
+ }
+
 
 /***************************************************
 ************************ FCFS **********************
@@ -227,12 +240,6 @@ void fcfs(struct Process, int num_processes)
         totalResponse += p[i].responseTime;
         totalIdle += (i == 0) ? (p[i].arrivalTime) : (p[i].initialTime - p[i - 1].finalTime);
     }
-
-    avgTurnaround = (double)totalTurnaround / num_processes;
-    avgWaiting = (double)totalWaiting / num_processes;
-    avgResponse = (double)totalResponse / num_processes;
-    utilization = ((p[num_processes - 1].finalTime - totalIdle) / (double)p[num_processes - 1].finalTime) * 100;
-    throughput = double(num_processes) / (p[num_processes - 1].finalTime - p[0].arrivalTime);
 
 }*/
 
