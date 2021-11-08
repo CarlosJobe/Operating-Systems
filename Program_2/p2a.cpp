@@ -103,13 +103,14 @@ struct Process {
 
 /*
  struct Statistics{
-    float totalTurnaround;
-    float totalWaiting;
-    float totalIdle;
-    float avgTurnaround;
-    float avgWaiting;
-    float utilization;
-    float throughput;
+     int pID;
+     float arrivalTime;
+     float burstTime;
+     float remainingTime;   // will need to set this equal to burstTime at process creation
+     float initialTime;
+     float finalTime;
+     float turnaroundTime;
+     float waitingTime;
  };
  */
 
@@ -147,7 +148,7 @@ float genexp(float lambda);
 struct Process generateProcess();
 void generateProcessEvents(struct Process p);
 void generateEventToCreateProcess(float time);
-void statistics(struct Statistics s);
+void statistics(struct Statistics *p);
 
 void printTopProcess();
 
