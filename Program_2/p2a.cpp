@@ -51,7 +51,7 @@ float arrivalInterval;  // value based on avgArrivalTime and exponential calc. u
 float newProcessClock;
 
 int num_processes = 20;
-int totalTurnaround = 0;
+float totalTurnaround = 0;
 int totalWaiting = 0;
 int totalResponse = 0;
 int totalIdle = 0;
@@ -91,6 +91,7 @@ struct Process {
     float turnaroundTime;
     float waitingTime;
     float responseTime;
+    float idleTime;
     //int rrCounter;
 
     bool operator<(const Process& a) const
@@ -107,7 +108,8 @@ struct Process {
 };
 
 priority_queue<Event> eventQueue;
-deque<Process> processReadyQueue;       // for FCFS and RR
+//deque<Process> processReadyQueue;       // for FCFS and RR
+queue<Process> processReadyQueue;       // for FCFS and RR
 priority_queue<Process> priorityPRQ;    // Process ready queue for SRTF
 queue<Process> valuesQueue;
 queue<Event> completedEventQueue;
@@ -124,13 +126,13 @@ int run_sim();
 void generate_report();
 int schedule_event(struct Event new_event);
 int addProcess(struct Process new_process);
-int handleEventType1(struct Event e);
-int handleEventType2(struct Event e);
-int handleEventType3(struct Event e);
-int handleEventType4(struct Event e);
-int handleEventType5(struct Event e);
-int handleEventType6(struct Event e);
-int handleEventType7(struct Event e);
+void handleEventType1(struct Event e);
+void handleEventType2(struct Event e);
+void handleEventType3(struct Event e);
+void handleEventType4(struct Event e);
+void handleEventType5(struct Event e);
+void handleEventType6(struct Event e);
+void handleEventType7(struct Event e);
 
 //int creationProcess(struct Event eve);
 bool commandLineInput(int argc, char* argv[]);
@@ -244,13 +246,13 @@ schedule first events
 void init()
 {
     end_condition = false;
-    mainTime = 0.0;
-    arrivalTime = 0.0;
-    arrivalInterval = 0.0;
-    newProcessClock = 0.0;
+    mainTime = 0.0f;
+    arrivalTime = 0.0f;
+    arrivalInterval = 0.0f;
+    newProcessClock = 0.0f;
     pIDCounter = 1;
     eventPIDCounter = 1;
-    avgArrivalTime = 1 / static_cast<float>(avgArrivalRate);
+    avgArrivalTime = 1.0f / static_cast<float>(avgArrivalRate);
     //cout << "avgArrivalTime = " << avgArrivalTime << endl;
     //srtfInProcess = false;
     //srtfPremptTime = 0.0;
@@ -278,38 +280,33 @@ int run_sim()
     the individual processors do much of the work
     */
 
-    int loop = 0;
-    while (loop < num_processes)
+    //int loop = 0;
+    while (valuesQueue.size() < static_cast<float>(num_processes))
     {
         //cout << "switch loop # " << loop << endl;
         //generate_report();
         Event toRun = eventQueue.top();
         completedEventQueue.push(toRun);
         eventQueue.pop();
-        //cout << "time=" << fixed << setprecision(7) << toRun.time << " \t\t: type=" << toRun.type << " \t\t: epID=" << toRun.epID << endl;
+
         switch (toRun.type)
         {
         case EVENT1:
-            //printTopProcess();
             handleEventType1(toRun);
             break;
         case EVENT2:
-            //cout << "entering event 2" << endl;
             handleEventType2(toRun);
             break;
         case EVENT3:
-            //printTopProcess();
             handleEventType3(toRun);
             break;
         case EVENT4:
-            //cout << "entering event 4" << endl;
             handleEventType4(toRun);
             break;
         case EVENT5:
             handleEventType5(toRun);
             break;
         case EVENT6:
-            //cout << "entering event 6" << endl;
             handleEventType6(toRun);
             break;
         case EVENT7:
@@ -320,7 +317,7 @@ int run_sim()
         default:
             break;
         }
-        loop++;
+        //loop++;
     }
 
     return 0;
@@ -346,21 +343,18 @@ struct Process generateProcess()
         //cout << "newProcessClock = " << newProcessClock << endl;
     }
     p.pID = pIDCounter;
-    //p.arrivalTime = mainTime;
     p.burstTime = (genexp(avgServiceTime)/100.0f);
-    //cout << "avgServiceTime = " << avgServiceTime << endl;
-    //cout << "burstTime returned = " << p.burstTime << endl;
     p.remainingTime = p.burstTime;
-    p.initialTime = p.arrivalTime;
-    p.finalTime = 0.0;
-    p.turnaroundTime = 0.0;
-    p.waitingTime = 0.0;
-    p.responseTime = 0.0;
+    p.initialTime = 0.0f;
+    p.finalTime = 0.0f;
+    p.turnaroundTime = 0.0f;
+    p.waitingTime = 0.0f;
+    p.responseTime = 0.0f;
 
     generateProcessEvents(p);
     addProcess(p);
     newProcessQueue.push(p);
-    cout << " -- added new process # " << p.pID << " to the queue" << " \t: arrival=" << p.initialTime << " \t: burst=" << p.burstTime << endl;
+    //cout << " -- added new process # " << p.pID << " to the queue" << " \t: arrival=" << p.arrivalTime << " \t: burst=" << p.burstTime << endl;
 
 
 
@@ -469,7 +463,7 @@ insert event into the event queue in its order of time
 int schedule_event(struct Event new_event)
 {
     //Event* e = new_event;
-    cout << " - - new event # " << new_event.epID << " type " << new_event.type << " at time " << new_event.time << endl;
+    //cout << " - - new event # " << new_event.epID << " type " << new_event.type << " at time " << new_event.time << endl;
     eventQueue.emplace(new_event);
     return 0;  // temp to make empty program run
 }
@@ -484,10 +478,16 @@ int addProcess(struct Process new_process)
 {
     if (schedAlg == 1 || schedAlg == 3)
     {
-        processReadyQueue.push_back(new_process);
+        //processReadyQueue.push_back(new_process);
+        processReadyQueue.push(new_process);
+        //cout << " added process # " << new_process.pID << " to queue" << endl;
+
     }
+
     else
         priorityPRQ.emplace(new_process);
+
+
 
     return 0;  // temp to make empty program run, function probably needs to be void
 
@@ -500,16 +500,59 @@ int addProcess(struct Process new_process)
 process the first event type
 these will be FCFS Start events
 */
-int handleEventType1(struct Event e)
+void handleEventType1(struct Event e)
 {
     Process p = processReadyQueue.front();
-    processReadyQueue.pop_front();
+    //processReadyQueue.pop_front();
+    processReadyQueue.pop();
+    // timekeeping 
+    //cout << "event#" << e.epID << " : "
+    //cout << "process #" << p.pID << " : mainTime=" << mainTime << " : initialTime=" << p.initialTime << endl;
+    if (mainTime < e.time)
+    {
+        //cout << "inside idle time loop" << endl;
+        float idleTime = e.time - mainTime;
+        p.idleTime = idleTime;
+        mainTime += idleTime;
+    }
+    if (p.initialTime == 0.0f)
+    {
+        //cout << "inside initial time correction loop" << endl;
+        p.initialTime = mainTime;
+    }
+    //if (mainTime > e.time)
+    //{
+
+    //}
 
     // statistics stuff here
 
 
-    processReadyQueue.push_front(p);
-    return 0;  // temp to make empty program run
+    //processReadyQueue.push_front(p);
+    queue<Process> tempSwap;
+    tempSwap.push(p);
+    while (!processReadyQueue.empty())
+    {
+        Process t = processReadyQueue.front();
+        processReadyQueue.pop();
+        tempSwap.push(t);
+    }
+
+    processReadyQueue = tempSwap;
+
+
+    //cout << "  Process Ready Queue" << endl;
+
+    //while (!tempSwap.empty())
+    //{
+    //    Process toPrint = tempSwap.front();
+    //    //processReadyQueue.pop_front();
+    //    tempSwap.pop();
+    //    cout << "  pID = " << toPrint.pID << "\t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl;
+    //}
+
+
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -525,89 +568,101 @@ if current process is shorter, update process values, push process back into que
 if next process was shorter, schedule another T2
 if next event/arrivalTime was sooner, the process event/arrivalTime
 
+need to check event list when process completes too. maybe schedule another T2?
+
 move push to queue from T6 to here, really move everything
 .
 */
-int handleEventType2(struct Event e)
+void handleEventType2(struct Event e)
 {
-    //cout << "beginning of T2 : mainTime= " << mainTime << " : arrivalTime= " << arrivalTime << endl;
-
-    /*
-    starting new concept.... **********************************/
-    Event tempE = eventQueue.top();
-    //cout << "pulled reference event ID = " << tempE.epID << " for process # " << tempE.procID << "from event queue" << endl;
-    int tempType;
-    Process tempP = priorityPRQ.top();
-    valuesQueue.push(tempP);  // why is this here?
-    priorityPRQ.pop();
-    cout << "  #  compare e.time(" << e.time << ") + tempP.remainingTime(" << tempP.remainingTime << ") with tempE.time(" << tempE.time << ")" << endl;
-    cout << "  #  if " << (e.time + tempP.remainingTime) << " > " << tempE.time << " then T2A;  otherwise T2B" << endl;
-    if (!priorityPRQ.empty() && (((e.time + tempP.remainingTime) > tempE.time) ||
-        ((e.time + tempP.remainingTime) > arrivalTime)))  // **T2A** if next event is before end of current event 
+    //Need to check if priorityPRQ is empty and if so move to the next event
+    if (!priorityPRQ.empty())
     {
-        float tempTime;
-        cout << " ~~ T2A-process # " << tempP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time  << " = " << (tempE.time - e.time) << endl;
-        if (tempE.time <= arrivalTime)      // next scheduled event is before next T4 creation
+
+        /*
+        starting new concept.... **********************************/
+        Event tempE = eventQueue.top();
+        //cout << "pulled reference event ID = " << tempE.epID << " for process # " << tempE.procID << "from event queue" << endl;
+        int tempType;
+        Process currentP = priorityPRQ.top();
+        priorityPRQ.pop();
+        if (currentP.initialTime == 0.0)
+            currentP.initialTime = mainTime;
+        if (!priorityPRQ.empty())
+            Process tempP = priorityPRQ.top();
+        //cout << "  #  compare e.time(" << e.time << ") + currentP.remainingTime(" << currentP.remainingTime << ") with tempE.time(" << tempE.time << ")" << endl;
+        //cout << "  #  if " << (e.time + currentP.remainingTime) << " > " << tempE.time << " then T2A;  otherwise T2B" << endl;
+        if (!priorityPRQ.empty() && (((e.time + currentP.remainingTime) > tempE.time) ||
+            ((e.time + currentP.remainingTime) > arrivalTime)))  // **T2A** if next event is before end of current event 
         {
-            tempTime = (tempE.time - e.time);
-            tempP.remainingTime -= tempTime;      // decrement remaining time
-            priorityPRQ.emplace(tempP);                         // add statistics here
-            //cout << "return process # " << tempP.pID << " to the queue" << endl;
-            if (tempP.remainingTime > 0)
+            float tempTime;
+            //cout << " ~~ T2A-process # " << currentP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
+            if (tempE.time <= arrivalTime)      // next scheduled event is before next T4 creation
+            {
+                tempTime = (tempE.time - e.time);
+                currentP.remainingTime -= tempTime;      // decrement remaining time
+                priorityPRQ.emplace(currentP);                         // add statistics here
+                mainTime += tempTime;
+                //cout << "return process # " << tempP.pID << " to the queue" << endl;
+                //if (currentP.remainingTime > 0)
                 tempType = SRTF_START;
-            else
-                tempType = SRTF_END;
-        }
-        else    // if (arrivalTime < tempE.time)
-        {
-            tempTime = (arrivalTime - e.time);
-            tempP.remainingTime -= tempTime;
-            tempP.arrivalTime = arrivalTime;      // double check this too
-            priorityPRQ.emplace(tempP);             // add statistics here
-            //cout << "return process # " << tempP.pID << " to the queue" << endl;
-            if (tempP.remainingTime > 0)
+                //else
+                    //tempType = SRTF_END;
+            }
+            else    // if (arrivalTime < tempE.time)
+            {
+                tempTime = (arrivalTime - e.time);
+                currentP.remainingTime -= tempTime;
+                currentP.arrivalTime = arrivalTime;      // double check this too
+                priorityPRQ.emplace(currentP);             // add statistics here
+                mainTime += tempTime;
+                //cout << "return process # " << tempP.pID << " to the queue" << endl;
+                //if (currentP.remainingTime > 0)
                 tempType = SRTF_START;
-            else
-                tempType = SRTF_END;
-        }
-        // create new start event
-        Event tempE2{};
-        tempE2.time = tempP.arrivalTime + tempTime; // different tempTime...
-        tempE2.type = tempType;
-        tempE2.epID = eventPIDCounter;
-        tempE2.procID = tempP.pID;
-        eventPIDCounter++;
-        newEventQueue.push(tempE2);
-        int E2 = schedule_event(tempE2); 
-        
-        
-    }
-    else
-    {
-        cout << " ~~ T2B-process # " << tempP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
-        float tempTime = tempP.remainingTime;
-        tempP.finalTime = tempTime;
-        tempP.remainingTime = 0.0;      // decrement remaining time
-        
-        priorityPRQ.emplace(tempP);                         // add statistics here
-        //cout << "return process # " << tempP.pID << " to the queue" << endl;
-        tempType = SRTF_END;
+                //else
+                    //tempType = SRTF_END;
+            }
+            // create new start event
+            Event tempE2{};
+            tempE2.time = currentP.arrivalTime + tempTime; // different tempTime...
+            tempE2.type = tempType;
+            tempE2.epID = eventPIDCounter;
+            tempE2.procID = currentP.pID;
+            eventPIDCounter++;
+            newEventQueue.push(tempE2);
+            int E2 = schedule_event(tempE2);
 
 
-        // genearate process service complete event
-        Event end{};
-        end.time = e.time + tempTime;
-        end.type = SRTF_END;
-        end.epID = eventPIDCounter;
-        end.procID = e.epID;
-        eventPIDCounter++;
-        newEventQueue.push(end);
-        int x2 = schedule_event(end);
-        if (x2)
-            cout << "error scheduling event" << endl;
-        
+        }
+        else
+        {
+           // cout << " ~~ T2B-process # " << currentP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
+            float tempTime = currentP.remainingTime;
+            currentP.finalTime = tempTime;
+            currentP.remainingTime = 0.0;      // decrement remaining time
+
+            //priorityPRQ.emplace(currentP);                         // add statistics here
+            mainTime += tempTime;
+            //cout << "return process # " << tempP.pID << " to the queue" << endl;
+            tempType = SRTF_START; //SRTF_END;
+            // ******* need to "generateProcessEvents" here ****
+
+            // genearate process service complete event
+            Event end{};
+            end.time = e.time + tempTime;
+            end.type = tempType;
+            end.epID = eventPIDCounter;
+            end.procID = e.epID;
+            eventPIDCounter++;
+            newEventQueue.push(end);
+            int x2 = schedule_event(end);
+            if (x2)
+                cout << "error scheduling event" << endl;
+
+        }
+        valuesQueue.push(currentP);  // why is this here?
     }
-    return 0;  // temp to make empty program run
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -617,16 +672,18 @@ int handleEventType2(struct Event e)
 process the third event type
 these will be RR Start events
 */
-int handleEventType3(struct Event e)
+void handleEventType3(struct Event e)
 {
     Process p = processReadyQueue.front();
-    processReadyQueue.pop_front();
+    //processReadyQueue.pop_front();
+    if(p.initialTime == 0.0)
+        p.initialTime = mainTime;
 
     // statistics stuff here
 
 
-    processReadyQueue.push_front(p);
-    return 0;  // temp to make empty program run
+    //processReadyQueue.push_front(p);
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -638,7 +695,7 @@ these will be events that trigger process creation
 this facilitates event scheduling based on average
 arrival time
 */
-int handleEventType4(struct Event e)
+void handleEventType4(struct Event e)
 {
 
     //create a new process
@@ -655,7 +712,7 @@ int handleEventType4(struct Event e)
     //eventQueue.pop();
     arrivalInterval = (genexp(avgArrivalTime) / 100.0f);
     arrivalTime += arrivalInterval;
-    return 0;
+    //return 0;
 }
 
 /***************************************************
@@ -665,21 +722,24 @@ int handleEventType4(struct Event e)
 process the fifth event type
 these will be FCFS End events
 */
-int handleEventType5(struct Event e)
+void handleEventType5(struct Event e)
 {
     //cout << "Handling FCFS End Event - Type 5" << endl;
     // collecct relevent data for analysis
     Process p = processReadyQueue.front();
-    processReadyQueue.pop_front();
+    //processReadyQueue.pop_front();
+    processReadyQueue.pop();
     mainTime += p.burstTime;
-    cout << "mainTime = " << mainTime << endl; 
+    //cout << "mainTime = " << mainTime << endl; 
+    //Event tempE = eventQueue.top();
+    //if (mainTime < )
     //eventQueue.pop();
 
     //stats
     p.turnaroundTime = p.burstTime;
     valuesQueue.push(p);
 
-    return 0;  // temp to make empty program run
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -689,19 +749,19 @@ int handleEventType5(struct Event e)
 process the sixth event type
 these will be SRTF End events
 */
-int handleEventType6(struct Event e)
+void handleEventType6(struct Event e)
 {
     Process p = priorityPRQ.top();
     valuesQueue.push(p);
     priorityPRQ.pop();
-    cout << "~  ~removed process id # " << p.pID << " from the queue" << endl;
+    //cout << "~  ~removed process id # " << p.pID << " from the queue" << endl;
     mainTime = e.time;
     //generate_report();
     //eventQueue.pop();
     //srtfInProcess = false;
     //cout << "still need to process SRTF end" << endl;
 
-    return 0;  // temp to make empty program run
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -711,14 +771,14 @@ int handleEventType6(struct Event e)
 process the seventh event type
 these will be RR End events
 */
-int handleEventType7(struct Event e)
+void handleEventType7(struct Event e)
 {
     //cout << "Handling RR End Event - Type 7" << endl;
 
     Process p = processReadyQueue.front();
-    processReadyQueue.pop_front();
+    //processReadyQueue.pop_front();
     // stats variables
-    float tempTurnaround;
+    //float tempTurnaround;
 
     //eventQueue.pop();
     if (p.remainingTime >= quantumInterval)
@@ -726,10 +786,10 @@ int handleEventType7(struct Event e)
         mainTime += quantumInterval; 
         p.remainingTime -= quantumInterval;
         p.turnaroundTime += quantumInterval;
-        cout << "mainTime = " << mainTime << endl;
-        cout << "reduced process # " << p.pID << " remaining time by " << quantumInterval << " to " << p.remainingTime << endl;
-        cout << "returned process # " << p.pID << " to the queue" << endl;
-        processReadyQueue.push_back(p);
+        //cout << "mainTime = " << mainTime << endl;
+        //cout << "reduced process # " << p.pID << " remaining time by " << quantumInterval << " to " << p.remainingTime << endl;
+        //cout << "returned process # " << p.pID << " to the queue" << endl;
+        //processReadyQueue.push_back(p);
     }
     else
     {
@@ -737,13 +797,13 @@ int handleEventType7(struct Event e)
         p.turnaroundTime += p.remainingTime;
         p.remainingTime = 0.0f;
         valuesQueue.push(p);
-        cout << "mainTime = " << mainTime << endl;
-        cout << " *** process # " << p.pID << " has completed ***" <<  endl;
+       // cout << "mainTime = " << mainTime << endl;
+       // cout << " *** process # " << p.pID << " has completed ***" <<  endl;
     }
 ;
 
     
-    return 0;  // temp to make empty program run
+    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -807,63 +867,65 @@ output statistics
 */
 void generate_report()
 {
-    cout << "QUEUE REPORT" << endl;
-    cout << "Event Queue" << endl;
+    cout << "  QUEUE REPORT" << endl;
+    cout << "  Event Queue" << endl;
     while (!eventQueue.empty())
     {
         Event toPrint = eventQueue.top();
         eventQueue.pop();
         //if (toprint.type % 2)
         //{
-        cout << "time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
+        cout << "  time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
         //}
     }
-    cout << "Process Ready Queue" << endl;
+    cout << "  Process Ready Queue" << endl;
     while (!processReadyQueue.empty())
     {
         Process toPrint = processReadyQueue.front();
-        processReadyQueue.pop_front();
-        cout << "pID = " << toPrint.pID << "\t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << endl;
+        //processReadyQueue.pop_front();
+        processReadyQueue.pop();
+        cout << "  pID = " << toPrint.pID << "\t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl;
     }
 
-    cout << "New Process Queue" << endl;
+    cout << "  New Process Queue" << endl;
     while (!newProcessQueue.empty())
     {
         Process toPrint = newProcessQueue.front();
         newProcessQueue.pop();
-        cout << "pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: final=" << toPrint.finalTime << endl;
+        cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl; // << " \t: final=" << toPrint.finalTime << endl;
     }
 
-    cout << "Priority Process Ready Queue" << endl;
+    cout << "  Priority Process Ready Queue" << endl;
     while (!priorityPRQ.empty())
     {
         Process toPrint = priorityPRQ.top();
         priorityPRQ.pop();
-        cout << "pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << endl;
+        cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl;
     }
 
-    cout << "Completed Process Queue" << endl;
+    cout << "  Completed Process Queue" << endl;
     while (!valuesQueue.empty())
     {
         Process toPrint = valuesQueue.front();
         valuesQueue.pop();
-        cout << "pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: final=" << toPrint.finalTime << endl;
+        cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime <<  " \t: idle=" << toPrint.idleTime << endl;
+        //cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl; // << " \t: final=" << toPrint.finalTime << endl;
     }
 
-    cout << "Completed Event Queue" << endl;
+    cout << "  Completed Event Queue" << endl;
     while (!completedEventQueue.empty())
     {
         Event toPrint = completedEventQueue.front();
         completedEventQueue.pop();
-        cout << "time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
+        cout << "  time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
     }
 
-    cout << "New Event Queue" << endl;
+    cout << "  New Event Queue" << endl;
     while (!newEventQueue.empty())
     {
         Event toPrint = newEventQueue.front();
         newEventQueue.pop();
-        cout << "time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
+        cout << "  time=" << toPrint.time << " \t\t: type=" << toPrint.type << " \t\t: epid=" << toPrint.epID << "\t\tassociated Process=" << toPrint.procID << endl;
     }
 }
 
