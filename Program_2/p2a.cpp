@@ -49,12 +49,14 @@ float mainTime;       // this should be driven by the events list handler??
 float arrivalTime;      // increments to track arrival time for event queue
 float arrivalInterval;  // value based on avgArrivalTime and exponential calc. used for incrementing arrival time
 float newProcessClock;
+float calculatedTurnaround;
 
 int num_processes = 50;
 float totalTurnaround = 0;
 int totalWaiting = 0;
 int totalResponse = 0;
 int totalIdle = 0;
+int totalTime = 0;
 float throughput;
 float avgTurnaround;
 float avgWaiting;
@@ -736,7 +738,9 @@ void handleEventType5(struct Event e)
     //eventQueue.pop();
 
     //stats
-    p.turnaroundTime = p.burstTime;
+    p.finalTime = p.initialTime + p.arrivalTime;
+    p.turnaroundTime = p.finalTime - p.burstTime;
+    p.waitingTime = p.turnaroundTime - p.burstTime;
     valuesQueue.push(p);
 
     //return 0;  // temp to make empty program run
@@ -812,18 +816,24 @@ void handleEventType7(struct Event e)
 /*
 perform statical analysis on completed processes
 */
-void runStatistics() 
+void runStatistics()
 {
+    
     while (!valuesQueue.empty())
     {
         Process p = valuesQueue.front();
         valuesQueue.pop();
-
+        
+        
         totalTurnaround += p.turnaroundTime;
-
+        totalWaiting += p.waitingTime;
+        totalTime += p.finalTime - p.initialTime;
     }
     
     float calculatedTurnaround = totalTurnaround / static_cast<float>(num_processes);
+    float calculatedWaiting = totalWaiting / static_cast<float>(num_processes);
+    //float CPU_Utilization will need to calculate idle time
+    float throughput = static_cast<float>(num_processes) / totalTime;
 }
 
 /***************************************************
