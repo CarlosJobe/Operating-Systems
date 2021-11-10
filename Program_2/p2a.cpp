@@ -738,9 +738,10 @@ void handleEventType5(struct Event e)
     //eventQueue.pop();
 
     //stats
-    p.finalTime = p.initialTime + p.arrivalTime;
+    p.finalTime = p.initialTime + p.burstTime;
     p.turnaroundTime = p.finalTime - p.burstTime;
     p.waitingTime = p.turnaroundTime - p.burstTime;
+    p.idleTime = p.finalTime - p.arrivalTime;
     valuesQueue.push(p);
 
     //return 0;  // temp to make empty program run
@@ -824,7 +825,7 @@ void runStatistics()
         Process p = valuesQueue.front();
         valuesQueue.pop();
         
-        
+        totalIdle += p.idleTime;
         totalTurnaround += p.turnaroundTime;
         totalWaiting += p.waitingTime;
         totalTime += p.finalTime - p.initialTime;
@@ -832,7 +833,7 @@ void runStatistics()
     
     float calculatedTurnaround = totalTurnaround / static_cast<float>(num_processes);
     float calculatedWaiting = totalWaiting / static_cast<float>(num_processes);
-    //float CPU_Utilization will need to calculate idle time
+    float calculateIdle  = ((totalTime - totalIdle) / totalTime ) * 100;
     float throughput = static_cast<float>(num_processes) / totalTime;
 }
 
