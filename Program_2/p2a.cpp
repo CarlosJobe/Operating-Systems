@@ -49,15 +49,15 @@ float mainTime;       // this should be driven by the events list handler??
 float arrivalTime;      // increments to track arrival time for event queue
 float arrivalInterval;  // value based on avgArrivalTime and exponential calc. used for incrementing arrival time
 float newProcessClock;
-float calculatedTurnaround;
+//float calculatedTurnaround;
 
-int num_processes = 50;
+int num_processes = 10;
 float totalTurnaround = 0;
-int totalWaiting = 0;
-int totalResponse = 0;
-int totalIdle = 0;
-int totalTime = 0;
-float throughput;
+float totalWaiting = 0;
+float totalResponse = 0;
+float totalIdle = 0;
+float totalTime = 0;
+//float throughput;
 float avgTurnaround;
 float avgWaiting;
 float avgResponse;
@@ -68,6 +68,16 @@ int eventPIDCounter;
 
 //bool srtfInProcess;
 //float srtfPremptTime;
+
+float calculatedTurnaround;
+float calculatedWaiting;
+float calculateUtilization;
+float throughput;
+
+int burstCounter;
+float burstTotal;
+int arrivalCounter;
+float arrivalTotal;
 
 struct Event {
     float time;
@@ -150,7 +160,6 @@ void generateProcessEvents(struct Process p);
 void generateEventToCreateProcess(float time);
 void runStatistics();
 
-void printTopProcess();
 
 /***********************************************************************
 ********************************* Main *********************************
@@ -168,8 +177,14 @@ int main(int argc, char* argv[])
 
     init();
     run_sim();
-    //runStatistics();
-    generate_report();
+    runStatistics();
+    //generate_report();
+
+
+    cout << "avgArrivalRate:" << avgArrivalRate << " avgServiceTime:" << avgServiceTime << endl;
+
+    cout << "calculated avgArrivalRate:" << arrivalTotal / static_cast<float>(arrivalCounter) << " avgServiceTime:" << burstTotal / static_cast<float>(burstCounter) << endl;
+
 
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
@@ -179,63 +194,6 @@ int main(int argc, char* argv[])
 ******************************* Functions ******************************
 ***********************************************************************/
 
-void printTopProcess()
-{
-    cout << "pID \t\t burst \t\t remaining" << endl;
-    if (schedAlg == 2 && !priorityPRQ.empty())
-    {
-        Process p2 = priorityPRQ.top();
-        cout << p2.pID << " \t\t " << p2.burstTime << " \t " << p2.remainingTime << endl;
-    }
-    if ((schedAlg == 1 && !processReadyQueue.empty()) || (schedAlg == 3 && !processReadyQueue.empty()))
-    {
-        Process p1 = processReadyQueue.front();
-        cout << p1.pID << " \t\t " << p1.burstTime << " \t " << p1.remainingTime << endl;
-    }
-}
-
-
-/***************************************************
-************************ FCFS **********************
-***************************************************/
-/*
-First Come First Served scheduling algorithm
-*/
-/*
-void fcfs(struct Process, int num_processes)
-{
-    /*
-    for(int i = 0; i < num_processes; i++)
-    {
-        cout << "Entere arrival time " << i+1 << ": ";
-        cin >> p[i].arrivalTime;
-        cout << "Enter burst time of process " << i+1 << ": ";
-        cin >> p[i].burstTime;
-        p[i].pID = i+1;
-        cout << endl;
-    }
-     // removed end block comment
-    for (int i = 0; i < num_processes; i++)
-    {
-        p[i].initialTime = (i == 0) ? p[i].arrivalTime : max(p[i - 1].finalTime, p[i].arrivalTime);
-        p[i].finalTime = p[i].initialTime + p[i].burstTime;
-        p[i].turnaroundTime = p[i].finalTime - p[i].arrivalTime;
-        p[i].waitingTime = p[i].turnaroundTime - p[i].burstTime;
-        p[i].responseTime = p[i].initialTime - p[i].arrivalTime;
-
-        totalTurnaround += p[i].turnaroundTime;
-        totalWaiting += p[i].waitingTime;
-        totalResponse += p[i].responseTime;
-        totalIdle += (i == 0) ? (p[i].arrivalTime) : (p[i].initialTime - p[i - 1].finalTime);
-    }
-
-    avgTurnaround = (double)totalTurnaround / num_processes;
-    avgWaiting = (double)totalWaiting / num_processes;
-    avgResponse = (double)totalResponse / num_processes;
-    utilization = ((p[num_processes - 1].finalTime - totalIdle) / (double)p[num_processes - 1].finalTime) * 100;
-    throughput = double(num_processes) / (p[num_processes - 1].finalTime - p[0].arrivalTime);
-
-}*/
 
 
 /***************************************************
@@ -247,23 +205,21 @@ schedule first events
 */
 void init()
 {
-    end_condition = false;
+    //end_condition = false;
     mainTime = 0.0f;
     arrivalTime = 0.0f;
     arrivalInterval = 0.0f;
-    newProcessClock = 0.0f;
+    //newProcessClock = 0.0f;
     pIDCounter = 1;
     eventPIDCounter = 1;
     avgArrivalTime = 1.0f / static_cast<float>(avgArrivalRate);
-    //cout << "avgArrivalTime = " << avgArrivalTime << endl;
-    //srtfInProcess = false;
-    //srtfPremptTime = 0.0;
 
     generateEventToCreateProcess(mainTime);
-    //Process p1 = generateProcess();
-    //if/else to appropriate queue
-    //schedule_event(p1);
-    
+
+    int burstCounter;
+    float burstTotal;
+    int arrivalCounter;
+    float arrivalTotal;
 
 }
 
@@ -278,11 +234,9 @@ int run_sim()
     /*
     so here we read the first item in the eventQueue and determine the event type
     then use that to send the event to the appropriate event processor.
-
     the individual processors do much of the work
     */
 
-    //int loop = 0;
     while (valuesQueue.size() < static_cast<float>(num_processes))
     {
         //cout << "switch loop # " << loop << endl;
@@ -314,12 +268,9 @@ int run_sim()
         case EVENT7:
             handleEventType7(toRun);
             break;
-            // May need an event 8 that checks remaining time 
-            // for SRTF
         default:
             break;
         }
-        //loop++;
     }
 
     return 0;
@@ -338,14 +289,12 @@ struct Process generateProcess()
     {
         p.arrivalTime = 0.0;
     }
-    else
-    {
-        newProcessClock += (genexp(avgArrivalTime)/100.0f);
-        p.arrivalTime = newProcessClock;
-        //cout << "newProcessClock = " << newProcessClock << endl;
-    }
+
     p.pID = pIDCounter;
-    p.burstTime = (genexp(avgServiceTime)/100.0f);
+    p.arrivalTime = arrivalTime;
+    p.burstTime = (genexp(1/avgServiceTime));
+    burstCounter++;
+    burstTotal += p.burstTime;
     p.remainingTime = p.burstTime;
     p.initialTime = 0.0f;
     p.finalTime = 0.0f;
@@ -356,12 +305,7 @@ struct Process generateProcess()
     generateProcessEvents(p);
     addProcess(p);
     newProcessQueue.push(p);
-    //cout << " -- added new process # " << p.pID << " to the queue" << " \t: arrival=" << p.arrivalTime << " \t: burst=" << p.burstTime << endl;
-
-
-
     pIDCounter++;
-    //generate_report();
     return p;
 }
 
@@ -375,16 +319,16 @@ void generateProcessEvents(struct Process p)
 {
     Event e1{};
     e1.time = p.arrivalTime;
-    
+
     e1.type = schedAlg;
-    e1.epID = eventPIDCounter; 
+    e1.epID = eventPIDCounter;
     e1.procID = p.pID;
     eventPIDCounter++;
     newEventQueue.push(e1);
     int x1 = schedule_event(e1);
     if (x1)
         cout << "error scheduling event" << endl;
-    
+
 
     if (schedAlg == 1)
     {
@@ -399,7 +343,7 @@ void generateProcessEvents(struct Process p)
         int x2 = schedule_event(e2);
         if (x2)
             cout << "error scheduling event" << endl;
-        
+
     }
 
     /*if (schedAlg == 2)
@@ -421,7 +365,7 @@ void generateProcessEvents(struct Process p)
         // genearate process service complete event
         Event e2{};
         e2.time = p.arrivalTime + quantumInterval;
-        e2.type = RR_END;     
+        e2.type = RR_END;
         e2.epID = eventPIDCounter;
         e2.procID = p.pID;
         eventPIDCounter++;
@@ -429,7 +373,7 @@ void generateProcessEvents(struct Process p)
         int x2 = schedule_event(e2);
         if (x2)
             cout << "error scheduling event" << endl;
-        
+
     }
 }
 
@@ -452,7 +396,8 @@ void generateEventToCreateProcess(float t)
     if (x1)
         cout << "error scheduling event" << endl;
     //cout << "new event # " << e1.epID << " type " << e1.type << " at time " << t << endl;
-
+    if (t != 0)
+        arrivalInterval = (genexp(1 / avgArrivalTime));
     // need to accomodate arrival interval
 }
 
@@ -506,53 +451,19 @@ void handleEventType1(struct Event e)
 {
     Process p = processReadyQueue.front();
     processReadyQueue.pop_front();
-    //processReadyQueue.pop();
-    // timekeeping 
-    //cout << "event#" << e.epID << " : "
-    //cout << "process #" << p.pID << " : mainTime=" << mainTime << " : initialTime=" << p.initialTime << endl;
     if (mainTime < e.time)
     {
-        //cout << "inside idle time loop" << endl;
-        float idleTime = e.time - mainTime;
-        p.idleTime = idleTime;
-        mainTime += idleTime;
+        float waitTime = e.time - mainTime;
+        p.idleTime = waitTime;
+        mainTime += waitTime;
     }
     if (p.initialTime == 0.0f)
     {
-        //cout << "inside initial time correction loop" << endl;
         p.initialTime = mainTime;
     }
-    //if (mainTime > e.time)
-    //{
-
-    //}
-
-    // statistics stuff here
-
+    p.waitingTime = p.initialTime - p.arrivalTime;
 
     processReadyQueue.push_front(p);
-    //queue<Process> tempSwap;
-    //tempSwap.push(p);
-    //while (!processReadyQueue.empty())
-    //{
-    //    Process t = processReadyQueue.front();
-    //    processReadyQueue.pop();
-    //    tempSwap.push(t);
-    //}
-
-    //processReadyQueue = tempSwap;
-
-
-    //cout << "  Process Ready Queue" << endl;
-
-    //while (!tempSwap.empty())
-    //{
-    //    Process toPrint = tempSwap.front();
-    //    //processReadyQueue.pop_front();
-    //    tempSwap.pop();
-    //    cout << "  pID = " << toPrint.pID << "\t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl;
-    //}
-
 
     //return 0;  // temp to make empty program run
 }
@@ -563,15 +474,11 @@ void handleEventType1(struct Event e)
 /*
 process the second event type
 these will be SRTF Start events
-
 need to compare remaining process time to arrivalTime, next event start, and next process remaining time
-
 if current process is shorter, update process values, push process back into queue, then...
 if next process was shorter, schedule another T2
 if next event/arrivalTime was sooner, the process event/arrivalTime
-
 need to check event list when process completes too. maybe schedule another T2?
-
 move push to queue from T6 to here, really move everything
 .
 */
@@ -638,7 +545,7 @@ void handleEventType2(struct Event e)
         }
         else
         {
-           // cout << " ~~ T2B-process # " << currentP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
+            // cout << " ~~ T2B-process # " << currentP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
             float tempTime = currentP.remainingTime;
             currentP.finalTime = tempTime;
             currentP.remainingTime = 0.0;      // decrement remaining time
@@ -678,11 +585,19 @@ void handleEventType3(struct Event e)
 {
     Process p = processReadyQueue.front();
     processReadyQueue.pop_front();
-    if(p.initialTime == 0.0)
+    if (mainTime < e.time)
+    {
+        float idleTime = e.time - mainTime;
+        p.idleTime = idleTime;
+        mainTime += idleTime;
+    }
+    if (p.initialTime == 0.0f)
+    {
         p.initialTime = mainTime;
+    }
 
     // statistics stuff here
-
+    p.waitingTime = p.initialTime - p.arrivalTime;
 
     processReadyQueue.push_front(p);
     //return 0;  // temp to make empty program run
@@ -702,19 +617,16 @@ void handleEventType4(struct Event e)
 
     //create a new process
     Process p1 = generateProcess();
-        //create start event
-        // if type = 1 create end event <- built into generateProcess();
-    //cout << "new process ID = " << p1.pID << endl;
-    //increment arrivalTime        
-    
-    //cout << "arrival time = " << arrivalTime << endl;
+      
+
     //create next creation event
     generateEventToCreateProcess(arrivalTime);
     //delete original process
     //eventQueue.pop();
-    arrivalInterval = (genexp(avgArrivalTime) / 100.0f);
+    arrivalInterval = (genexp(1/avgArrivalTime));
     arrivalTime += arrivalInterval;
-    //return 0;
+    arrivalCounter++;
+    arrivalTotal += arrivalInterval;
 }
 
 /***************************************************
@@ -732,16 +644,17 @@ void handleEventType5(struct Event e)
     processReadyQueue.pop_front();
     //processReadyQueue.pop();
     mainTime += p.burstTime;
+    p.finalTime = mainTime;
     //cout << "mainTime = " << mainTime << endl; 
     //Event tempE = eventQueue.top();
     //if (mainTime < )
     //eventQueue.pop();
 
     //stats
-    p.finalTime = p.initialTime + p.burstTime;
-    p.turnaroundTime = p.finalTime - p.burstTime;
-    p.waitingTime = p.turnaroundTime - p.burstTime;
-    p.idleTime = p.finalTime - p.arrivalTime;
+    //p.finalTime = p.initialTime + p.burstTime;
+    p.turnaroundTime = p.finalTime - p.initialTime;
+    //p.waitingTime = p.turnaroundTime - p.burstTime;
+    //p.idleTime = p.finalTime - p.arrivalTime;
     valuesQueue.push(p);
 
     //return 0;  // temp to make empty program run
@@ -778,37 +691,25 @@ these will be RR End events
 */
 void handleEventType7(struct Event e)
 {
-    //cout << "Handling RR End Event - Type 7" << endl;
-
     Process p = processReadyQueue.front();
     processReadyQueue.pop_front();
-    // stats variables
-    //float tempTurnaround;
 
-    //eventQueue.pop();
     if (p.remainingTime >= quantumInterval)
     {
-        mainTime += quantumInterval; 
+        mainTime += quantumInterval;
         p.remainingTime -= quantumInterval;
         p.turnaroundTime += quantumInterval;
-        //cout << "mainTime = " << mainTime << endl;
-        //cout << "reduced process # " << p.pID << " remaining time by " << quantumInterval << " to " << p.remainingTime << endl;
-        //cout << "returned process # " << p.pID << " to the queue" << endl;
         processReadyQueue.push_back(p);
     }
     else
     {
         mainTime += p.remainingTime;
+        p.finalTime = mainTime;
         p.turnaroundTime += p.remainingTime;
         p.remainingTime = 0.0f;
         valuesQueue.push(p);
-       // cout << "mainTime = " << mainTime << endl;
-        //cout << " *** process # " << p.pID << " has completed ***" <<  endl;
     }
-;
 
-    
-    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -819,22 +720,30 @@ perform statical analysis on completed processes
 */
 void runStatistics()
 {
-    
+
     while (!valuesQueue.empty())
     {
         Process p = valuesQueue.front();
         valuesQueue.pop();
-        
+
         totalIdle += p.idleTime;
         totalTurnaround += p.turnaroundTime;
         totalWaiting += p.waitingTime;
         totalTime += p.finalTime - p.initialTime;
+        cout << "waitingTime(" << p.waitingTime << ")=initialTime(" << p.initialTime << ")-arrivalTime(" << p.arrivalTime << ")" << endl;
+            
     }
-    
-    float calculatedTurnaround = totalTurnaround / static_cast<float>(num_processes);
-    float calculatedWaiting = totalWaiting / static_cast<float>(num_processes);
-    float calculateIdle  = ((totalTime - totalIdle) / totalTime ) * 100;
-    float throughput = static_cast<float>(num_processes) / totalTime;
+
+    calculatedTurnaround = totalTurnaround / static_cast<float>(num_processes);
+    calculatedWaiting = totalWaiting / static_cast<float>(num_processes);
+    calculateUtilization = ((totalTime - totalIdle) / totalTime) * 100;
+    throughput = static_cast<float>(num_processes) / totalTime;
+
+    cout << "calculatedTurnaround=" << calculatedTurnaround << endl;
+    cout << "calculatedWaiting=" << calculatedWaiting << endl;
+    cout << "calculateUtilization=" << calculateUtilization << endl;
+    cout << "throughput=" << throughput << endl;
+
 }
 
 /***************************************************
@@ -861,11 +770,11 @@ float genexp(float lambda)
 {
     float u, x;
     x = 0;
-    
+
     while (x == 0)
     {
         u = urand();
-        x = (-1.0f / lambda) * log10(u);
+        x = (-1.0f / lambda) * log2(u);
     }
     return(x);
 }
@@ -919,7 +828,7 @@ void generate_report()
     {
         Process toPrint = valuesQueue.front();
         valuesQueue.pop();
-        cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime <<  " \t: idle=" << toPrint.idleTime << endl;
+        cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: idle=" << toPrint.idleTime << endl;
         //cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl; // << " \t: final=" << toPrint.finalTime << endl;
     }
 
