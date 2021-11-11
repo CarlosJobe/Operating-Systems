@@ -51,7 +51,7 @@ float arrivalInterval;  // value based on avgArrivalTime and exponential calc. u
 float newProcessClock;
 //float calculatedTurnaround;
 
-int num_processes = 10;
+int num_processes = 10000;
 float totalTurnaround = 0;
 float totalWaiting = 0;
 float totalResponse = 0;
@@ -81,7 +81,7 @@ float arrivalTotal;
 
 struct Event {
     float time;
-    int type;       // maybe start of process, end of process, 
+    int type;       // maybe start of process, end of process,
     // maybe type 1 = FCFS start, 2= RR (re)start, 3 = SRTF (re)start
     int epID;
     int procID;
@@ -462,6 +462,7 @@ void handleEventType1(struct Event e)
         p.initialTime = mainTime;
     }
     p.waitingTime = p.initialTime - p.arrivalTime;
+    
 
     processReadyQueue.push_front(p);
 
@@ -502,7 +503,7 @@ void handleEventType2(struct Event e)
         //cout << "  #  compare e.time(" << e.time << ") + currentP.remainingTime(" << currentP.remainingTime << ") with tempE.time(" << tempE.time << ")" << endl;
         //cout << "  #  if " << (e.time + currentP.remainingTime) << " > " << tempE.time << " then T2A;  otherwise T2B" << endl;
         if (!priorityPRQ.empty() && (((e.time + currentP.remainingTime) > tempE.time) ||
-            ((e.time + currentP.remainingTime) > arrivalTime)))  // **T2A** if next event is before end of current event 
+            ((e.time + currentP.remainingTime) > arrivalTime)))  // **T2A** if next event is before end of current event
         {
             float tempTime;
             //cout << " ~~ T2A-process # " << currentP.pID << " - tempE.time:" << tempE.time << " - e.time:" << e.time << " = " << (tempE.time - e.time) << endl;
@@ -645,16 +646,16 @@ void handleEventType5(struct Event e)
     //processReadyQueue.pop();
     mainTime += p.burstTime;
     p.finalTime = mainTime;
-    //cout << "mainTime = " << mainTime << endl; 
+    //cout << "mainTime = " << mainTime << endl;
     //Event tempE = eventQueue.top();
     //if (mainTime < )
     //eventQueue.pop();
 
     //stats
-    //p.finalTime = p.initialTime + p.burstTime;
+    p.finalTime = p.initialTime + p.burstTime;
     p.turnaroundTime = p.finalTime - p.initialTime;
-    //p.waitingTime = p.turnaroundTime - p.burstTime;
-    //p.idleTime = p.finalTime - p.arrivalTime;
+    p.waitingTime = p.initialTime - p.arrivalTime;
+    p.idleTime = p.finalTime - p.arrivalTime;
     valuesQueue.push(p);
 
     //return 0;  // temp to make empty program run
@@ -726,10 +727,11 @@ void runStatistics()
         Process p = valuesQueue.front();
         valuesQueue.pop();
 
+        
         totalIdle += p.idleTime;
         totalTurnaround += p.turnaroundTime;
         totalWaiting += p.waitingTime;
-        totalTime += p.finalTime - p.initialTime;
+        totalTime += p.finalTime;
         cout << "waitingTime(" << p.waitingTime << ")=initialTime(" << p.initialTime << ")-arrivalTime(" << p.arrivalTime << ")" << endl;
             
     }
