@@ -700,6 +700,7 @@ void handleEventType7(struct Event e)
         mainTime += quantumInterval;
         p.remainingTime -= quantumInterval;
         p.turnaroundTime += quantumInterval;
+        p.waitingTime = p.initialTime - p.arrivalTime;
         processReadyQueue.push_back(p);
     }
     else
@@ -707,7 +708,11 @@ void handleEventType7(struct Event e)
         mainTime += p.remainingTime;
         p.finalTime = mainTime;
         p.turnaroundTime += p.remainingTime;
+        p.waitingTime = p.initialTime - p.arrivalTime;
         p.remainingTime = 0.0f;
+        p.finalTime = p.initialTime + p.burstTime;
+        p.turnaroundTime = p.finalTime - p.initialTime;
+        p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;
         valuesQueue.push(p);
     }
 
