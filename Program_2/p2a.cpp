@@ -655,7 +655,7 @@ void handleEventType5(struct Event e)
     p.finalTime = p.initialTime + p.burstTime;
     p.turnaroundTime = p.finalTime - p.initialTime;
     p.waitingTime = p.initialTime - p.arrivalTime;
-    p.idleTime = p.finalTime - p.arrivalTime;
+    p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;
     valuesQueue.push(p);
 
     //return 0;  // temp to make empty program run
@@ -739,6 +739,7 @@ void runStatistics()
     calculatedTurnaround = totalTurnaround / static_cast<float>(num_processes);
     calculatedWaiting = totalWaiting / static_cast<float>(num_processes);
     calculateUtilization = ((totalTime - totalIdle) / totalTime) * 100;
+    cout << "Total idle: " << totalIdle << " and total time: " << totalTime << endl;
     throughput = static_cast<float>(num_processes) / totalTime;
 
     cout << "calculatedTurnaround=" << calculatedTurnaround << endl;
