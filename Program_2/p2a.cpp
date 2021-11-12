@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
     init();
     run_sim();
     runStatistics();
-    //generate_report();
+    generate_report();
 
 
     cout << "avgArrivalRate:" << avgArrivalRate << " avgServiceTime:" << avgServiceTime << endl;
@@ -839,6 +839,25 @@ void generate_report()
         cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: idle=" << toPrint.idleTime << endl;
         //cout << "  pID = " << toPrint.pID << " \t: initial=" << toPrint.initialTime << " \t: arrival=" << toPrint.arrivalTime << " \t: burst=" << toPrint.burstTime << " \t: remaining=" << toPrint.remainingTime << " \t: idle=" << toPrint.idleTime << endl; // << " \t: final=" << toPrint.finalTime << endl;
     }
+    ofstream data("sim.data");
+    ofstream xcel("sim.csv");
+    if(data.is_open() && xcel.is_open())
+    {
+        
+        int w =15;
+        if(avgArrivalRate == 1)
+        {
+            data << setfill(' ') << setw(w) << "Scheduler" << setw(w) << "Lambda" << setw(w) << "Turnaround" << setw(w) << "Throughput" << setw(w) << "CPU Utilization" << setw(w) << "throughput" << endl;
+            cout << setfill(' ') << setw(w) << "Scheduler" << setw(w) << "Lambda" << setw(w) << "Turnaround" << setw(w) << "Throughput" << setw(w) << "CPU Utilization" << setw(w) << "throughput" << endl;
+            
+            xcel << "Scheduler, Lambda, Turnaround, Waiting, CPU Utilization, throughput\n";
+        }
+        data << setfill(' ') << setw(w) << schedAlg << setw(w) << avgArrivalRate << setw(w) << calculatedTurnaround << setw(w) << calculatedWaiting << setw(w) << calculateUtilization << setw(w) << throughput << endl;
+        xcel << schedAlg << "," << avgArrivalRate << "," << calculatedTurnaround << "," << calculatedWaiting << "," << calculateUtilization << "," << throughput << endl;
+        
+        data.close();
+    }
+    else cout << "error" << endl;
 
     //cout << "  Completed Event Queue" << endl;
     //while (!completedEventQueue.empty())
