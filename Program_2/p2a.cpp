@@ -257,9 +257,10 @@ struct Process generateProcess()
     {
         p.arrivalTime = 0.0;
     }
+    else
+        p.arrivalTime = arrivalTime;
 
     p.pID = pIDCounter;
-    p.arrivalTime = arrivalTime;
     p.burstTime = (genexp(1/avgServiceTime));
     p.remainingTime = p.burstTime;
     p.initialTime = 0.0f;
@@ -556,7 +557,6 @@ void handleEventType3(struct Event e)
     p.waitingTime = p.initialTime - p.arrivalTime;
 
     processReadyQueue.push_front(p);
-    //return 0;  // temp to make empty program run
 }
 
 /***************************************************
@@ -593,11 +593,11 @@ void handleEventType5(struct Event e)
 {
     Process p = processReadyQueue.front();
     processReadyQueue.pop_front();
-    mainTime = e.time;
-    p.finalTime = mainTime;
+    p.finalTime = p.initialTime + p.burstTime;
+    mainTime = p.finalTime;
 
     //stats
-    p.turnaroundTime = p.finalTime - p.initialTime;
+    p.turnaroundTime = p.finalTime - p.arrivalTime;
     p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;
     valuesQueue.push(p);
 }
@@ -637,7 +637,7 @@ void handleEventType7(struct Event e)
         mainTime += p.remainingTime;
         p.finalTime = mainTime;
         p.remainingTime = 0.0f;
-        p.turnaroundTime = p.finalTime - p.initialTime;  // collect
+        p.turnaroundTime = p.finalTime - p.arrivalTime;  // collect
         p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;  // collect
         valuesQueue.push(p);
     }
@@ -652,7 +652,6 @@ perform statical analysis on completed processes
 */
 void runStatistics()
 {
-
     while (!valuesQueue.empty())
     {
         Process p = valuesQueue.front();
@@ -661,10 +660,12 @@ void runStatistics()
         totalIdle += p.idleTime;
         totalTurnaround += p.turnaroundTime;
         totalWaiting += p.waitingTime;
-        totalTime += p.finalTime;
+        totalTime = p.finalTime;
     }
 
+
     calculatedTurnaround = totalTurnaround / static_cast<double>(num_processes);
+    cout << "calculatedTurnaround(" << calculatedTurnaround << ")=totalTurnaround(" << totalTurnaround << ")/num_processes(" << num_processes << endl;
     calculatedWaiting = totalWaiting / static_cast<double>(num_processes);
     calculateUtilization = ((totalTime - totalIdle) / totalTime) * 100;
     cout << "Total idle: " << totalIdle << " and total time: " << totalTime << endl;
