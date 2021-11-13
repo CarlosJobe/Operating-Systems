@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
     init();
     run_sim();
     runStatistics();
-    //generate_report();
+    generate_report();
 
     cout << "\n\t*** exiting program normally ***" << endl;
     return 0;
