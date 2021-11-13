@@ -2,7 +2,7 @@
 ****************************** CS4328.004 ******************************
 ****************************** Program #2 ******************************
 *********************** Carlos Jobe and Tyler Fain *********************
-**************************** 8 November 2021 ***************************
+*************************** 12 November 2021 ***************************
 ***********************************************************************/
 
 #include <iostream>
@@ -98,6 +98,7 @@ struct Process {
     float responseTime;
     float idleTime;
     float CPUidleTime;
+    float totalTime;
 
     bool operator<(const Process& a) const
     {
@@ -471,6 +472,7 @@ void handleEventType2(struct Event e)
                     tempType = SRTF_END;
                     currentP.turnaroundTime = currentP.finalTime - currentP.arrivalTime;                // stats
                     currentP.idleTime = currentP.finalTime - currentP.arrivalTime - currentP.burstTime; // stats
+                    currentP.totalTime = currentP.finalTime;
                     valuesQueue.push(currentP);
                 }
                 else
@@ -515,6 +517,7 @@ void handleEventType2(struct Event e)
                 currentP.remainingTime = 0.0f;      // decrement remaining time
                 currentP.turnaroundTime = currentP.finalTime - currentP.arrivalTime;                // stats
                 currentP.idleTime = currentP.finalTime - currentP.arrivalTime - currentP.burstTime; // stats
+                currentP.totalTime = currentP.finalTime;
                 valuesQueue.push(currentP);
             }
             Event tempE2{};
@@ -542,10 +545,11 @@ void handleEventType3(struct Event e)
 {
     Process p = processReadyQueue.front();
     processReadyQueue.pop_front();
+    float tempType; 
     if (mainTime < e.time)
     {
         float CPUidleTime = e.time - mainTime;
-        p.CPUidleTime = CPUidleTime;
+        p.waitingTime += CPUidleTime;
         mainTime += CPUidleTime;
     }
     if (p.initialTime == 0.0f)
@@ -553,8 +557,34 @@ void handleEventType3(struct Event e)
         p.initialTime = mainTime;
     }
 
-    // statistics stuff here
-    p.waitingTime = p.initialTime - p.arrivalTime;
+    if (p.remainingTime > quantumInterval)
+    {
+        mainTime += quantumInterval;
+        p.remainingTime -= quantumInterval;
+        processReadyQueue.push_back(p);
+        tempType = RR_START;
+    }
+    else
+    {
+        mainTime += p.remainingTime;
+        p.finalTime = mainTime;
+        p.remainingTime = 0.0f;
+        p.turnaroundTime = p.finalTime - p.arrivalTime;  // collect
+        p.idleTime = p.finalTime - p.initialTime - p.burstTime;  // collect
+        p.totalTime = p.finalTime; // -p.initialTime;
+        valuesQueue.push(p);
+        tempType = RR_END;
+    }
+
+    // create new  event
+    Event tempE1{};
+    tempE1.time = mainTime;
+    tempE1.type = tempType;
+    tempE1.epID = eventPIDCounter;
+    tempE1.procID = p.pID;
+    eventPIDCounter++;
+    int E1 = schedule_event(tempE1);
+
 
     processReadyQueue.push_front(p);
 }
@@ -595,10 +625,12 @@ void handleEventType5(struct Event e)
     processReadyQueue.pop_front();
     p.finalTime = p.initialTime + p.burstTime;
     mainTime = p.finalTime;
+;
 
     //stats
     p.turnaroundTime = p.finalTime - p.arrivalTime;
-    p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;
+    p.idleTime = p.finalTime - p.initialTime - p.burstTime;
+    p.totalTime = p.finalTime; // -p.arrivalTime;
     valuesQueue.push(p);
 }
 
@@ -623,24 +655,6 @@ these will be RR End events
 */
 void handleEventType7(struct Event e)
 {
-    Process p = processReadyQueue.front();
-    processReadyQueue.pop_front();
-
-    if (p.remainingTime > quantumInterval)
-    {
-        mainTime += quantumInterval;
-        p.remainingTime -= quantumInterval;
-        processReadyQueue.push_back(p);
-    }
-    else
-    {
-        mainTime += p.remainingTime;
-        p.finalTime = mainTime;
-        p.remainingTime = 0.0f;
-        p.turnaroundTime = p.finalTime - p.arrivalTime;  // collect
-        p.idleTime = p.finalTime - p.arrivalTime - p.burstTime;  // collect
-        valuesQueue.push(p);
-    }
 
 }
 
@@ -657,19 +671,21 @@ void runStatistics()
         Process p = valuesQueue.front();
         valuesQueue.pop();
 
-        totalIdle += p.idleTime;
+        totalIdle += p.CPUidleTime;
         totalTurnaround += p.turnaroundTime;
         totalWaiting += p.waitingTime;
-        totalTime = p.finalTime;
+        totalTime = p.totalTime;
     }
 
 
     calculatedTurnaround = totalTurnaround / static_cast<double>(num_processes);
-    cout << "calculatedTurnaround(" << calculatedTurnaround << ")=totalTurnaround(" << totalTurnaround << ")/num_processes(" << num_processes << endl;
+    //cout << "calculatedTurnaround(" << calculatedTurnaround << ")=totalTurnaround(" << totalTurnaround << ")/num_processes(" << num_processes << endl;
     calculatedWaiting = totalWaiting / static_cast<double>(num_processes);
     calculateUtilization = ((totalTime - totalIdle) / totalTime) * 100;
+    //cout << "calculateUtilization(" << calculateUtilization << ")=(totalTime(" << totalTime << ")-totalIdle(" << totalWaiting << ")/num_processes(" << num_processes << endl;
+
     cout << "Total idle: " << totalIdle << " and total time: " << totalTime << endl;
-    throughput = static_cast<double>(num_processes) / totalTime;
+    throughput = (static_cast<double>(num_processes) / totalTime);
 
     cout << "number of processes=" << num_processes << " for schedAlg alg #" << schedAlg << endl;
     cout << "calculatedTurnaround=" << calculatedTurnaround << endl;
