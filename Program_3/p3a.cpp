@@ -37,8 +37,8 @@ using namespace std;
 *************************** Global Variables ***************************
 ***********************************************************************/
 
-const int pageReferenceStringLength = 40;                   // length of page string
-const int pageFrameMax = 20;                                // max # of page frames
+const int pageReferenceStringLength = 20;                   // length of page string
+const int pageFrameMax = 3;                                // max # of page frames
 array<int, pageReferenceStringLength> pageReferenceString;
 
 struct PageLog {
@@ -70,8 +70,8 @@ int main(int argc, char* argv[])
     populatePageReferenceString();
 
     for (int i = 1; i <= pageFrameMax; i++) {  // i represents the number of physical memory frames
-        processFIFO(i);
-        //processLRU(i);
+        //processFIFO(i);
+        processLRU(i);
         //processOPT(i);
     }
     cout << endl;
@@ -145,7 +145,7 @@ void processFIFO(int p) { // p represents the number of physical memory frames
                 }
             }
             match = false;
-            for (int j = 0; j < frameList.size(); j++) {
+            for (int j = 0; j < frameList.size(); j++) {  // this loop displays the frame list in process // for testing
                 cout << frameList[j] << "\t";
             }
             cout << endl;
@@ -165,7 +165,79 @@ void processFIFO(int p) { // p represents the number of physical memory frames
 Process page reference string using LRU
 */
 void processLRU(int p) {
-    vector<int> pageList;
+    int loopLimit;
+    queue<int> oldest;
+    queue<int> tempQ;
+    bool match = false;
+    int matchValue;     // for testing
+    vector<int> frameList;
+    PageLog log{};
+    log.pageNumberCount = p;
+    log.pageFaultCount = 0;
+    cout << "start with frame count = " << p << endl;
+    for (int i = 0; i < pageReferenceStringLength; i++) {  // this loop iterates through the 100 elements in the pageReferenceString
+        if (frameList.size() < p)
+            loopLimit = frameList.size();
+        else
+            loopLimit = p;
+        for (int ii = 0; ii < loopLimit; ii++) // this loop iterates through the frameList to check for matches
+        {
+            if (pageReferenceString[i] == frameList[ii])
+            {
+                match = true;
+                matchValue = frameList[ii];
+                // when we have a match, reorder the oldest list
+                swap(oldest, tempQ);
+                while (!tempQ.empty()) 
+                {
+                    int move = tempQ.front();
+                    tempQ.pop();
+                    if (move != matchValue)
+                    {
+                        oldest.push(move);
+                    }
+                }
+                oldest.push(matchValue);
+            }
+        }
+        if (match)
+            cout << "match found: " << matchValue << endl;
+        if (!match && frameList.size() < p) {   // this fills the frameList/oldest and increments the fault counter
+            frameList.push_back(pageReferenceString[i]);
+            log.pageFaultCount += 1;
+            oldest.push(pageReferenceString[i]);
+            match = false;
+            for (int j = 0; j < frameList.size(); j++) {
+                cout << frameList[j] << "\t";
+            }
+            cout << endl;
+        }
+        // @@@@@@ HERE IS WHERE WE NEED TO IMPLEMENT THE LRU ALGORITHM @@@@@@
+        else if (!match && frameList.size() == p)  // identify oldest page and replace it
+        {
+            int toReplace = oldest.front(); // maybe a LRU finder function here?
+            oldest.pop();
+            for (int iii = 0; iii < loopLimit; iii++)
+            {
+                if (toReplace == frameList[iii])
+                {
+                    frameList[iii] = pageReferenceString[i];
+                    log.pageFaultCount += 1;
+                    oldest.push(pageReferenceString[i]);
+                }
+            }
+            match = false;
+            for (int j = 0; j < frameList.size(); j++) {  // this loop displays the frame list in process // for testing
+                cout << frameList[j] << "\t";
+            }
+            cout << endl;
+        }
+        else
+        {
+            match = false;
+        }
+    }
+    resultsLRU.push(log);
 
 }
 
@@ -176,7 +248,7 @@ void processLRU(int p) {
 Process page reference string using OPT
 */
 void processOPT(int p) {
-    vector<int> pageList;
+    
 
 }
 
@@ -186,6 +258,20 @@ void printLog()
     {
         PageLog p = resultsFIFO.front();
         resultsFIFO.pop();
+        cout << "pageNumberCount=" << p.pageNumberCount << ": pageFaultCount=" << p.pageFaultCount << endl;
+    }
+
+    while (!resultsLRU.empty())
+    {
+        PageLog p = resultsLRU.front();
+        resultsLRU.pop();
+        cout << "pageNumberCount=" << p.pageNumberCount << ": pageFaultCount=" << p.pageFaultCount << endl;
+    }
+
+    while (!resultsOPT.empty())
+    {
+        PageLog p = resultsOPT.front();
+        resultsOPT.pop();
         cout << "pageNumberCount=" << p.pageNumberCount << ": pageFaultCount=" << p.pageFaultCount << endl;
     }
 }
