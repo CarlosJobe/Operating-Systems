@@ -26,6 +26,7 @@ need an output container. must log: # of frames, algorithm, # of page faults
 #include <math.h>
 #include <fstream>
 #include <queue>
+#include <deque>
 #include <random>
 #include <ctime>
 #include <stdlib.h>
@@ -37,8 +38,8 @@ using namespace std;
 *************************** Global Variables ***************************
 ***********************************************************************/
 
-const int pageReferenceStringLength = 20;                   // length of page string
-const int pageFrameMax = 3;                                // max # of page frames
+const int pageReferenceStringLength = 100;                   // length of page string
+const int pageFrameMax = 30;                                // max # of page frames
 array<int, pageReferenceStringLength> pageReferenceString;
 
 struct PageLog {
@@ -61,6 +62,7 @@ void processFIFO(int p);
 void processLRU(int p);
 void processOPT(int p);
 void printLog();
+int nextOPT(vector<int> &fl, int i);
 
 /***********************************************************************
 ********************************* Main *********************************
@@ -70,9 +72,9 @@ int main(int argc, char* argv[])
     populatePageReferenceString();
 
     for (int i = 1; i <= pageFrameMax; i++) {  // i represents the number of physical memory frames
-        //processFIFO(i);
+        processFIFO(i);
         processLRU(i);
-        //processOPT(i);
+        processOPT(i);
     }
     cout << endl;
     for (int i = 0; i < pageReferenceStringLength; i++)
@@ -98,14 +100,14 @@ Process page reference string using FIFO
 */
 void processFIFO(int p) { // p represents the number of physical memory frames
     int loopLimit;
-    queue<int> oldest;
+    queue<int> toReplace;
     bool match = false;
     int matchValue;     // for testing
     vector<int> frameList;
     PageLog log{};
     log.pageNumberCount = p;
     log.pageFaultCount = 0;
-    cout << "start with frame count = " << p << endl;
+    //cout << "start with frame count = " << p << endl;        // @@ uncomment to trace algorithm @@
     for (int i = 0; i < pageReferenceStringLength; i++) {  // this loop iterates through the 100 elements in the pageReferenceString
         if (frameList.size() < p)
             loopLimit = frameList.size();
@@ -119,36 +121,36 @@ void processFIFO(int p) { // p represents the number of physical memory frames
                 matchValue = frameList[ii];
             }
         }
-        if (match)
-            cout << "match found: " << matchValue << endl;
-        if (!match && frameList.size() < p) {   // this fills the frameList/oldest and increments the fault counter
+        //if (match)
+            //cout << "match found: " << matchValue << endl;        // @@ uncomment to trace algorithm @@
+        if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
-            oldest.push(pageReferenceString[i]);
+            toReplace.push(pageReferenceString[i]);
             match = false;
-            for (int j = 0; j < frameList.size(); j++) {
-                cout << frameList[j] << "\t";
-            }
-            cout << endl;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
         }
-        else if (!match && frameList.size() == p)  // identify oldest page and replace it
+        else if (!match && frameList.size() == p)  // identify toReplace page and replace it
         {
-            int toReplace = oldest.front();
-            oldest.pop();
+            int tempReplace = toReplace.front();
+            toReplace.pop();
             for (int iii = 0; iii < loopLimit; iii++)
             {
-                if (toReplace == frameList[iii])
+                if (tempReplace == frameList[iii])
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
-                    oldest.push(pageReferenceString[i]);
+                    toReplace.push(pageReferenceString[i]);
                 }
             }
             match = false;
-            for (int j = 0; j < frameList.size(); j++) {  // this loop displays the frame list in process // for testing
-                cout << frameList[j] << "\t";
-            }
-            cout << endl;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
         }
         else
         {
@@ -166,7 +168,7 @@ Process page reference string using LRU
 */
 void processLRU(int p) {
     int loopLimit;
-    queue<int> oldest;
+    queue<int> toReplace;
     queue<int> tempQ;
     bool match = false;
     int matchValue;     // for testing
@@ -174,7 +176,7 @@ void processLRU(int p) {
     PageLog log{};
     log.pageNumberCount = p;
     log.pageFaultCount = 0;
-    cout << "start with frame count = " << p << endl;
+    //cout << "start with frame count = " << p << endl;        // @@ uncomment to trace algorithm @@
     for (int i = 0; i < pageReferenceStringLength; i++) {  // this loop iterates through the 100 elements in the pageReferenceString
         if (frameList.size() < p)
             loopLimit = frameList.size();
@@ -186,51 +188,50 @@ void processLRU(int p) {
             {
                 match = true;
                 matchValue = frameList[ii];
-                // when we have a match, reorder the oldest list
-                swap(oldest, tempQ);
+                // when we have a match, reorder the toReplace list
+                swap(toReplace, tempQ);
                 while (!tempQ.empty()) 
                 {
                     int move = tempQ.front();
                     tempQ.pop();
                     if (move != matchValue)
                     {
-                        oldest.push(move);
+                        toReplace.push(move);
                     }
                 }
-                oldest.push(matchValue);
+                toReplace.push(matchValue);
             }
         }
-        if (match)
-            cout << "match found: " << matchValue << endl;
-        if (!match && frameList.size() < p) {   // this fills the frameList/oldest and increments the fault counter
+        //if (match)
+            //cout << "match found: " << matchValue << endl;        // @@ uncomment to trace algorithm @@
+        if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
-            oldest.push(pageReferenceString[i]);
+            toReplace.push(pageReferenceString[i]);
             match = false;
-            for (int j = 0; j < frameList.size(); j++) {
-                cout << frameList[j] << "\t";
-            }
-            cout << endl;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
         }
-        // @@@@@@ HERE IS WHERE WE NEED TO IMPLEMENT THE LRU ALGORITHM @@@@@@
-        else if (!match && frameList.size() == p)  // identify oldest page and replace it
+        else if (!match && frameList.size() == p)  // identify toReplace page and replace it
         {
-            int toReplace = oldest.front(); // maybe a LRU finder function here?
-            oldest.pop();
+            int tempReplace = toReplace.front(); // maybe a LRU finder function here?
+            toReplace.pop();
             for (int iii = 0; iii < loopLimit; iii++)
             {
-                if (toReplace == frameList[iii])
+                if (tempReplace == frameList[iii])
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
-                    oldest.push(pageReferenceString[i]);
+                    toReplace.push(pageReferenceString[i]);
                 }
             }
             match = false;
-            for (int j = 0; j < frameList.size(); j++) {  // this loop displays the frame list in process // for testing
-                cout << frameList[j] << "\t";
-            }
-            cout << endl;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
         }
         else
         {
@@ -247,11 +248,105 @@ void processLRU(int p) {
 /*
 Process page reference string using OPT
 */
-void processOPT(int p) {
-    
-
+void processOPT(int p) { // p represents the number of physical memory frames
+    int loopLimit;
+    int optValue;
+    bool match = false;
+    int matchValue;     // for testing
+    vector<int> frameList;
+    PageLog log{};
+    log.pageNumberCount = p;
+    log.pageFaultCount = 0;
+    //cout << "start with frame count = " << p << endl;        // @@ uncomment to trace algorithm @@
+    for (int i = 0; i < pageReferenceStringLength; i++) {  // this loop iterates through the 100 elements in the pageReferenceString
+        if (frameList.size() < p)
+            loopLimit = frameList.size();
+        else
+            loopLimit = p;
+        for (int ii = 0; ii < loopLimit; ii++) // this loop iterates through the frameList to check for matches
+        {
+            if (pageReferenceString[i] == frameList[ii])
+            {
+                match = true;
+                matchValue = frameList[ii];
+            }
+        }
+        //if (match)
+        //    cout << "match found: " << matchValue << endl;        // @@ uncomment to trace algorithm @@
+        if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
+            frameList.push_back(pageReferenceString[i]);
+            log.pageFaultCount += 1;
+            match = false;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
+        }
+        else if (!match && frameList.size() == p)  // identify optimal page and replace it
+        {
+            optValue = nextOPT(frameList, i);
+            for (int iii = 0; iii < loopLimit; iii++) // cycle through page list to find page to replace
+            {
+                if (optValue == frameList[iii])
+                {
+                    frameList[iii] = pageReferenceString[i];
+                    log.pageFaultCount += 1;
+                }
+            }
+            match = false;
+            //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
+            //    cout << frameList[j] << "\t";
+            //}
+            //cout << endl;
+        }
+        else
+        {
+            match = false;
+        }
+    }
+    resultsOPT.push(log);
 }
 
+/***************************************************
+***************** next OPT selector ****************
+***************************************************/
+/*
+identify and return the page that will not be used for the
+longest period of time
+*/
+int nextOPT(vector<int> &fl, int i)
+{
+    deque<int> tempFrameList;
+    deque<int> tempPageRefString;
+
+    for (int k = 0; k < fl.size(); k++)
+    {
+        tempFrameList.push_front(fl[k]);
+    }
+    for (int j = i; j < pageReferenceString.size(); j++)
+    {
+        for (int jj = 0; jj < tempFrameList.size(); jj++)
+        {
+            if (tempFrameList[jj] == pageReferenceString[j])
+            {
+                if (tempFrameList.size() == 1)
+                {
+                    return tempFrameList.front();
+                }
+                else
+                {
+                    tempFrameList.erase(tempFrameList.begin()+jj);
+                }
+            }   
+        }
+    }
+    return tempFrameList.front();
+}
+
+
+/***************************************************
+*********** TEMPORARY LOG PRINTER *********
+***************************************************/
 void printLog()
 {
     while (!resultsFIFO.empty())
@@ -285,6 +380,8 @@ random values from 0 to 49
 */
 void populatePageReferenceString()
 {
+    //array<int,20> temp = {7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1};
+    //pageReferenceString.swap(temp);
     for (int i = 0; i < pageReferenceStringLength; i++)
     {
         int tempTest = urand();
