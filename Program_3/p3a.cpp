@@ -41,6 +41,7 @@ using namespace std;
 const int pageReferenceStringLength = 100;                   // length of page string
 const int pageFrameMax = 30;                                // max # of page frames
 array<int, pageReferenceStringLength> pageReferenceString;
+int totalPageFaults = 0;
 
 struct PageLog {
     int pageNumberCount;
@@ -50,6 +51,7 @@ struct PageLog {
 queue<PageLog> resultsFIFO;
 queue<PageLog> resultsLRU;
 queue<PageLog> resultsOPT;
+queue<PageLog> metrics;
 
 
 /***********************************************************************
@@ -61,6 +63,7 @@ int urand();
 void processFIFO(int p);
 void processLRU(int p);
 void processOPT(int p);
+void calculations();
 void printLog();
 int nextOPT(vector<int> &fl, int i);
 
@@ -76,6 +79,7 @@ int main(int argc, char* argv[])
         processLRU(i);
         processOPT(i);
     }
+    calculations();
     cout << endl;
     for (int i = 0; i < pageReferenceStringLength; i++)
     {
@@ -126,6 +130,7 @@ void processFIFO(int p) { // p represents the number of physical memory frames
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
+            metrics.push(log);
             toReplace.push(pageReferenceString[i]);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
@@ -143,6 +148,7 @@ void processFIFO(int p) { // p represents the number of physical memory frames
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
+                    metrics.push(log);
                     toReplace.push(pageReferenceString[i]);
                 }
             }
@@ -207,6 +213,7 @@ void processLRU(int p) {
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
+            metrics.push(log);
             toReplace.push(pageReferenceString[i]);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
@@ -224,6 +231,7 @@ void processLRU(int p) {
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
+                    metrics.push(log);
                     toReplace.push(pageReferenceString[i]);
                 }
             }
@@ -276,6 +284,7 @@ void processOPT(int p) { // p represents the number of physical memory frames
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
+            metrics.push(log);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
             //    cout << frameList[j] << "\t";
@@ -291,6 +300,7 @@ void processOPT(int p) { // p represents the number of physical memory frames
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
+                    metrics.push(log);
                 }
             }
             match = false;
@@ -342,7 +352,20 @@ int nextOPT(vector<int> &fl, int i)
     }
     return tempFrameList.front();
 }
-
+/***************************************************
+******************** Calculations *******************
+***************************************************/
+void calculations()
+{
+    while(!metrics.empty())
+    {
+        PageLog log = metrics.front();
+        metrics.pop();
+        
+        totalPageFaults = log.pageFaultCount;
+    }
+    cout << "Total page faults: " << totalPageFaults << endl;
+}
 
 /***************************************************
 *********** TEMPORARY LOG PRINTER *********
