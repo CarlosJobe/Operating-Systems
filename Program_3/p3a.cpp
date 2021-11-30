@@ -6,18 +6,13 @@
 ***********************************************************************/
 
 /**************************Thoughts and Ideas***************************
-
 No command line input, the program is fully self contained.
-
 Generate a page-reference string // maybe an array, no reordering, fixed size.
-
 loop 1 to 30 for the number of memory frames available
     within each loop run each of the 3 algorithms
-
 need an output container. must log: # of frames, algorithm, # of page faults
     there will be 90 instances of this container // queue of structs should
     work since we are familliar with them.
-
 */
 
 #include <iostream>
@@ -41,7 +36,10 @@ using namespace std;
 const int pageReferenceStringLength = 100;                   // length of page string
 const int pageFrameMax = 30;                                // max # of page frames
 array<int, pageReferenceStringLength> pageReferenceString;
-int totalPageFaults = 0;
+int faultsFIFO = 0;
+int faultsLRU = 0;
+int faultsOPT = 0;
+int frame = 0;
 
 struct PageLog {
     int pageNumberCount;
@@ -51,7 +49,7 @@ struct PageLog {
 queue<PageLog> resultsFIFO;
 queue<PageLog> resultsLRU;
 queue<PageLog> resultsOPT;
-queue<PageLog> metrics;
+
 
 
 /***********************************************************************
@@ -65,6 +63,7 @@ void processLRU(int p);
 void processOPT(int p);
 void calculations();
 void printLog();
+void generate_report();
 int nextOPT(vector<int> &fl, int i);
 
 /***********************************************************************
@@ -130,7 +129,6 @@ void processFIFO(int p) { // p represents the number of physical memory frames
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
-            metrics.push(log);
             toReplace.push(pageReferenceString[i]);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
@@ -148,7 +146,6 @@ void processFIFO(int p) { // p represents the number of physical memory frames
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
-                    metrics.push(log);
                     toReplace.push(pageReferenceString[i]);
                 }
             }
@@ -196,7 +193,7 @@ void processLRU(int p) {
                 matchValue = frameList[ii];
                 // when we have a match, reorder the toReplace list
                 swap(toReplace, tempQ);
-                while (!tempQ.empty()) 
+                while (!tempQ.empty())
                 {
                     int move = tempQ.front();
                     tempQ.pop();
@@ -213,7 +210,6 @@ void processLRU(int p) {
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
-            metrics.push(log);
             toReplace.push(pageReferenceString[i]);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
@@ -231,7 +227,6 @@ void processLRU(int p) {
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
-                    metrics.push(log);
                     toReplace.push(pageReferenceString[i]);
                 }
             }
@@ -284,7 +279,6 @@ void processOPT(int p) { // p represents the number of physical memory frames
         if (!match && frameList.size() < p) {   // this fills the frameList/toReplace and increments the fault counter
             frameList.push_back(pageReferenceString[i]);
             log.pageFaultCount += 1;
-            metrics.push(log);
             match = false;
             //for (int j = 0; j < frameList.size(); j++) {        // @@ uncomment to trace algorithm @@
             //    cout << frameList[j] << "\t";
@@ -300,7 +294,6 @@ void processOPT(int p) { // p represents the number of physical memory frames
                 {
                     frameList[iii] = pageReferenceString[i];
                     log.pageFaultCount += 1;
-                    metrics.push(log);
                 }
             }
             match = false;
@@ -347,7 +340,7 @@ int nextOPT(vector<int> &fl, int i)
                 {
                     tempFrameList.erase(tempFrameList.begin()+jj);
                 }
-            }   
+            }
         }
     }
     return tempFrameList.front();
@@ -357,14 +350,41 @@ int nextOPT(vector<int> &fl, int i)
 ***************************************************/
 void calculations()
 {
-    while(!metrics.empty())
+    ofstream xcel("data.csv");
+    if(xcel.is_open())
     {
-        PageLog log = metrics.front();
-        metrics.pop();
+        if(frame == 0)
+        {
+            xcel << "frame, faults FIFO, faults LRU, faults OPT\n";
+        }
+    while(!resultsFIFO.empty() && !resultsLRU.empty() && !resultsOPT.empty())
+    {
+        PageLog fifo = resultsFIFO.front();
+        resultsFIFO.pop();
         
-        totalPageFaults = log.pageFaultCount;
+        faultsFIFO = fifo.pageFaultCount;
+        frame = fifo.pageNumberCount;
+        
+        PageLog lru = resultsLRU.front();
+        resultsLRU.pop();
+        
+        faultsLRU = lru.pageFaultCount;
+        
+        PageLog opt = resultsOPT.front();
+        resultsOPT.pop();
+        
+        faultsOPT = opt.pageFaultCount;
+        
+        xcel << fifo.pageNumberCount << "," << fifo.pageFaultCount << "," << lru.pageFaultCount << "," << opt.pageFaultCount << endl;
+
     }
-    cout << "Total page faults: " << totalPageFaults << endl;
+    cout << "Total frames: " << frame << endl;
+    cout << "Total page faults for FIFO: " << faultsFIFO << endl;
+    cout << "Total page faults for LRU: " << faultsLRU << endl;
+    cout << "Total page faults for OPT: " << faultsOPT << endl;
+    }
+ 
+    else cout << "error" << endl;
 }
 
 /***************************************************
